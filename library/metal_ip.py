@@ -1,8 +1,15 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+try:
+    from metal_python.api import IpApi
+    from metal_python import models
+
+    METAL_PYTHON_AVAILABLE = True
+except ImportError:
+    METAL_PYTHON_AVAILABLE = False
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal import AUTH_SPEC, exec_metalctl
+from ansible.module_utils.metal import AUTH_SPEC, init_driver
 
 ANSIBLE_METADATA = {
     'metadata_version': '0.1',
@@ -20,7 +27,7 @@ version_added: "2.8"
 
 description:
     - Manages ip entities in the metal-api.
-    - Requires metalctl to be installed.
+    - Requires metal_python to be installed.
     - Cannot update entities.
 
 options:
@@ -102,6 +109,9 @@ id:
 
 class Instance(object):
     def __init__(self, module):
+        if not METAL_PYTHON_AVAILABLE:
+            raise RuntimeError("metal_python must be installed")
+
         self._module = module
         self.changed = False
         self._ip = dict()
@@ -111,7 +121,10 @@ class Instance(object):
         self._network = module.params.get('network')
         self._description = module.params.get('description')
         self._type = module.params.get('type')
+        self._tags = module.params.get('tags')
         self._state = module.params.get('state')
+        self._driver = init_driver(self._module)
+        self._ip_client = IpApi(api_client=self._driver.client)
 
     def run(self):
         if self._module.check_mode:
@@ -137,46 +150,23 @@ class Instance(object):
         if not self.ip_address:
             return
 
-        ips = self._ip_ls()
-
-        for ip in ips:
-            if ip["ipaddress"] == self.ip_address:
-                self._ip = ip
-                self.ip_address = ip["ipaddress"]
-
-    def _ip_ls(self):
-        args = ["network", "ip", "ls", "--ipaddress", self.ip_address]
-        return exec_metalctl(self._module, args)
+        self._ip = self._ip_client.find_ip(self.ip_address)
 
     def _ip_allocate(self):
-        if not self._network:
-            self._module.fail_json(msg="network is required when allocating an ip")
-        if not self._project:
-            self._module.fail_json(msg="project is required when allocating an ip")
+        r = models.V1IPAllocateRequest(
+            description=self._description,
+            name=self._name,
+            networkid=self._network,
+            projectid=self._project,
+            tags=self._tags,
+            type=self._type
+        )
 
-        args = ["network", "ip", "allocate", "--project", self._project, "--network", self._network, "--type", self._type]
-
-        if self._name:
-            args += ["--name", self._name]
-        if self._description:
-            args += ["--description", self._description]
-        if self.ip_address:
-            args.append(self.ip_address)
-
-        ip = exec_metalctl(self._module, args)
-
-        if "ipaddress" not in ip:
-            self._module.fail_json(msg="ip was not allocated properly", output=ip)
-
-        self._ip = ip
-        self.ip_address = ip["ipaddress"]
+        self._ip = self._ip_client.allocate_ip(r)
+        self.ip_address = self._ip.ipaddress
 
     def _ip_free(self):
-        args = ["ip", "free", self.ip_address]
-        ip = exec_metalctl(self._module, args)
-
-        if "ipaddress" not in ip:
-            self._module.fail_json(msg="ip was not freed properly", output=ip)
+        self._ip_client.free_ip(self.ip_address)
 
 
 def main():
@@ -187,7 +177,8 @@ def main():
         project=dict(type='str', required=False),
         description=dict(type='str', required=False),
         network=dict(type='str', required=False),
-        type=dict(type='str', choices=['static', 'ephemeral'], default='static'),
+        tags=dict(type='list', required=False),
+        type=dict(type='str', choices=['static', 'ephemeral'], default='ephemeral'),
         state=dict(type='str', choices=['present', 'absent'], default='present'),
     ))
     module = AnsibleModule(

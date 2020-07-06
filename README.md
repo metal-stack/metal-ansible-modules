@@ -1,4 +1,4 @@
-# Ansible Common
+# Metal Ansible Modules
 
 This repository contains modules and plugins for metal-stack.
 
@@ -41,7 +41,5 @@ Then reference the roles in your playbooks like this:
   connection: local
   gather_facts: no
   roles:
-    - name: ansible-common/roles/helm-chart
-      vars:
-        ...
+    - metal-modules
 ```

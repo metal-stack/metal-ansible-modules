@@ -1,0 +1,7 @@
+---
+- src: https://github.com/metal-stack/ansible-common.git
+  name: ansible-common
+  version: move-out-metal-modules
+- src: https://github.com/metal-stack/metal-roles.git
+  name: metal-roles
+  version: v0.2.2

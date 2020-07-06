@@ -1,8 +1,16 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+try:
+    from metal_python.api import NetworkApi
+    from metal_python import models
+
+    METAL_PYTHON_AVAILABLE = True
+except ImportError:
+    METAL_PYTHON_AVAILABLE = False
+
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal import AUTH_SPEC, exec_metalctl
+from ansible.module_utils.metal import AUTH_SPEC, init_driver
 
 ANSIBLE_METADATA = {
     'metadata_version': '0.1',
@@ -20,7 +28,7 @@ version_added: "2.8"
 
 description:
     - Manages network entities in the metal-api.
-    - Requires metalctl to be installed.
+    - Requires metal_python to be installed.
     - Cannot update entities.
 
 options:
@@ -97,11 +105,17 @@ class Instance(object):
         self.prefixes = None
         self._network = dict()
         self.id = None
+        self._id = module.params['id']
         self._name = module.params['name']
         self._project = module.params['project']
         self._partition = module.params['partition']
         self._description = module.params.get('description')
         self._state = module.params.get('state')
+        self._driver = init_driver(self._module)
+        self._network_client = NetworkApi(api_client=self._driver.client)
+
+        if self._id is None and (self._partition is None or self._project is None or self._name is None):
+            raise RuntimeError("either id or partition, project and name must be given")
 
     def run(self):
         if self._module.check_mode:
@@ -122,7 +136,14 @@ class Instance(object):
                 self.changed = True
 
     def _find(self):
-        networks = self._network_ls()
+        if self._id is not None:
+            self._network = self._network_client.find_network(self._id)
+            self.id = self._network.id
+            self.prefixes = self._network.prefixes
+            return
+
+        r = models.V1NetworkFindRequest(name=self._name, partitionid=self._partition, projectid=self._project)
+        networks = self._network_client.find_networks(r)
 
         if len(networks) > 1:
             self._module.fail_json(
@@ -131,44 +152,29 @@ class Instance(object):
                 project=self._project, name=self._name)
         elif len(networks) == 1:
             self._network = networks[0]
-            self.id = self._network["id"]
-            self.prefixes = self._network["prefixes"]
-
-    def _network_ls(self):
-        args = ["network", "ls", "--name", self._name, "--partition", self._partition, "--project", self._project]
-        return exec_metalctl(self._module, args)
+            self.id = self._network.id
+            self.prefixes = self._network.prefixes
 
     def _network_allocate(self):
-        args = ["network", "allocate", "--name", self._name, "--description", self._description,
-                "--project", self._project, "--partition", self._partition]
-        network = exec_metalctl(self._module, args)
-
-        if "id" not in network:
-            self._module.fail_json(msg="network was not allocated properly", output=network)
-
-        self._network = network
-        self.id = self._network["id"]
-        self.prefixes = self._network["prefixes"]
+        r = models.V1NetworkAllocateRequest(description=self._description, name= self._name, partitionid= self._partition, projectid=self._project)
+        self._network = self._network_client.allocate_network(r)
+        self.id = self._network.id
+        self.prefixes = self._network.prefixes
 
     def _network_free(self):
-        args = ["network", "free", self.id]
-        network = exec_metalctl(self._module, args)
-
-        if "id" not in network:
-            self._module.fail_json(msg="network was not freed properly", output=network)
-
-        self._network = network
-        self.id = network["id"]
-        self.prefixes = self._network["prefixes"]
+        self._network = self._network_client.free_network(self.id)
+        self.id = self._network.id
+        self.prefixes = self._network.prefixes
 
 
 def main():
     argument_spec = AUTH_SPEC.copy()
     argument_spec.update(dict(
-        name=dict(type='str', required=True),
-        project=dict(type='str', required=True),
+        id=dict(type='str', required=False),
+        name=dict(type='str', required=False),
+        project=dict(type='str', required=False),
         description=dict(type='str', required=False),
-        partition=dict(type='str', required=True),
+        partition=dict(type='str', required=False),
         state=dict(type='str', choices=['present', 'absent'], default='present'),
     ))
     module = AnsibleModule(

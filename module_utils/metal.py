@@ -1,30 +1,25 @@
-import json
 import os
 
-METALCTL_BIN = os.environ.get("METALCTL_BIN", "metalctl")
+try:
+    from metal_python.driver import Driver
+
+    METAL_PYTHON_AVAILABLE = True
+except ImportError:
+    METAL_PYTHON_AVAILABLE = False
 
 AUTH_SPEC = dict(
     api_url=dict(type='str', required=False),
-    api_hmac=dict(type='str', required=False),
+    api_hmac=dict(type='str', required=False, no_log=True),
+    api_token=dict(type='str', required=False, no_log=True),
 )
 
 
-def exec_metalctl(module, args):
-    environ_update = dict()
-    url = module.params.get("api_url")
-    if url:
-        environ_update["METALCTL_URL"] = url
-    hmac = module.params.get("api_hmac")
-    if hmac:
-        environ_update["METALCTL_HMAC"] = hmac
+def init_driver(module):
+    if not METAL_PYTHON_AVAILABLE:
+        raise RuntimeError("metal_python must be installed")
 
-    cmd = [METALCTL_BIN, "-o", "json"] + args
-    _, out, err = module.run_command(cmd, check_rc=True, environ_update=environ_update)
+    url = module.params.get("api_url", os.environ.get("METALCTL_URL"))
+    hmac = module.params.get("api_hmac", os.environ.get("METALCTL_HMAC"))
+    token = module.params.get("api_token", os.environ.get("METALCTL_APITOKEN"))
 
-    if err:
-        module.fail_json(cmd=cmd, msg=err)
-        return
-
-    result = json.loads(out)
-
-    return result
+    return Driver(url, token, hmac)
