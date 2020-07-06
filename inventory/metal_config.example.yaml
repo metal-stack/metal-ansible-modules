@@ -1,0 +1,10 @@
+---
+# works for mini-lab
+url: http://api.0.0.0.0.xip.io:8080/metal
+hmac: metal-admin
+token:
+scope_filters:
+  - name: allocation_project
+    value: 00000000-0000-0000-0000-000000000000
+static_machine_ip_mapping:
+  test: 1.2.3.4
