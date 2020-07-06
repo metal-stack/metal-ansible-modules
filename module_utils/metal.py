@@ -16,7 +16,7 @@ AUTH_SPEC = dict(
 
 def init_driver(module):
     if not METAL_PYTHON_AVAILABLE:
-        raise RuntimeError("metal_python must be installed")
+        module.fail_json(msg="metal_python must be installed")
 
     url = module.params.get("api_url", os.environ.get("METALCTL_URL"))
     hmac = module.params.get("api_hmac", os.environ.get("METALCTL_HMAC"))

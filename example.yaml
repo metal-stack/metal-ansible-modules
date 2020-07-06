@@ -1,4 +1,5 @@
 ---
+# requires the mini-lab to be running
 - name: Running modules
   hosts: localhost
   connection: local
@@ -19,9 +20,9 @@
 
     - name: Install metal-python
       pip:
-        name: git+https://github.com/metal-stack/metal-python@spec-corrections
-        # name: metal_python
-        # version: "{{ metal_metalctl_image_tag }}"
+        #name: git+https://github.com/metal-stack/metal-python@spec-corrections
+        name: metal_python
+        version: "{{ metal_metalctl_image_tag }}"
 
     - name: Allocate network
       metal_network:

@@ -115,7 +115,7 @@ class Instance(object):
         self._network_client = NetworkApi(api_client=self._driver.client)
 
         if self._id is None and (self._partition is None or self._project is None or self._name is None):
-            raise RuntimeError("either id or partition, project and name must be given")
+            module.fail_json(msg="either id or partition, project and name must be given")
 
     def run(self):
         if self._module.check_mode:

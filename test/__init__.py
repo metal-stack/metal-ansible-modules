@@ -62,11 +62,3 @@ class MetalModules(unittest.TestCase):
                                                       fail_json=fail_json)
         self.mock_module_helper.start()
         self.addCleanup(self.mock_module_helper.stop)
-
-class Mock:
-    class MetalPython:
-        @staticmethod
-        def read(filename):
-            path = os.path.join(Mock.Metalctl.PATH, filename)
-            with open(path, "r") as f:
-                return f.read()
