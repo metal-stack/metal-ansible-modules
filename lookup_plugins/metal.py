@@ -35,8 +35,13 @@ DOCUMENTATION = """
         description: the entity to lookup
         required: True
       _terms:
-         description: query terms
+         description: 
+         - First term can be set to 'get' or 'search', second one to the desired entity
+         - If set, request and entity can be omitted
          required: False
+      query:
+        description: arbitrary query parameters
+        required: False
     requirements:
       - "metal-python >= 0.9.0"
     notes:
@@ -52,7 +57,7 @@ EXAMPLES = """
 
 class Requester(ABC):
     @abstractmethod
-    def __init__(self, client):
+    def __init__(self, _):
         pass
 
     @abstractmethod
@@ -207,7 +212,7 @@ class LookupModule(LookupBase):
         size=SizeRequester,
         switch=SwitchRequester,
     )
-    _request_types = ["get", "find"]
+    _request_types = ["get", "search"]
 
     def run(self, terms, variables=None, **kwargs):
         if not METAL_PYTHON_AVAILABLE:
@@ -219,11 +224,11 @@ class LookupModule(LookupBase):
 
         d = Driver(url, token, hmac)
 
-        entity = kwargs.pop("entity")
+        entity = kwargs.pop("entity", terms[1] if len(terms) == 2 else None)
         if not entity:
             raise AnsibleError("entity must be present and one of %s" % LookupModule._entities.keys())
 
-        request = kwargs.pop("request", "get")
+        request = kwargs.pop("request", terms[0] if len(terms) == 2 else "get")
         if request not in LookupModule._request_types:
             raise AnsibleError("request must be present and one of %s" % LookupModule._request_types)
 
