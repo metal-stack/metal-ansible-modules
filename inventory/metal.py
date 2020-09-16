@@ -28,7 +28,9 @@ HMAC = os.environ.get("METAL_ANSIBLE_INVENTORY_HMAC", CONFIG.get("hmac"))
 
 def run():
     if not METAL_PYTHON_AVAILABLE:
-        raise RuntimeError("metal_python must be installed")
+        # this allows to install metal_python during playbook execution, just refresh the inventory
+        # after installation
+        return dict()
 
     args = parse_arguments()
     if args.host:
