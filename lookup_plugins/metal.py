@@ -216,7 +216,7 @@ class LookupModule(LookupBase):
 
     def run(self, terms, variables=None, **kwargs):
         if not METAL_PYTHON_AVAILABLE:
-            raise AnsibleError("metal-python must be installed")
+            raise RuntimeError("metal_python must be installed")
 
         url = kwargs.pop("api_url", variables.get("metal_api_url", os.environ.get("METALCTL_URL")))
         hmac = kwargs.pop("api_hmac", variables.get("metal_api_hmac", os.environ.get("METALCTL_HMAC")))

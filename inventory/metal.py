@@ -4,9 +4,15 @@ import argparse
 import os
 import json
 import yaml
-from metal_python.driver import Driver
-from metal_python.api import MachineApi, ProjectApi
-from metal_python import models
+
+try:
+    from metal_python.driver import Driver
+    from metal_python.api import MachineApi, ProjectApi
+    from metal_python import models
+
+    METAL_PYTHON_AVAILABLE = True
+except ImportError:
+    METAL_PYTHON_AVAILABLE = False
 
 CONFIG_PATH = os.environ.get("METAL_ANSIBLE_INVENTORY_CONFIG",
                              os.path.join(os.path.dirname(__file__), "metal_config.yaml"))
@@ -21,6 +27,9 @@ HMAC = os.environ.get("METAL_ANSIBLE_INVENTORY_HMAC", CONFIG.get("hmac"))
 
 
 def run():
+    if not METAL_PYTHON_AVAILABLE:
+        raise RuntimeError("metal_python must be installed")
+
     args = parse_arguments()
     if args.host:
         result = host_vars(args.host)

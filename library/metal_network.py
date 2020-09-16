@@ -100,6 +100,9 @@ prefixes:
 
 class Instance(object):
     def __init__(self, module):
+        if not METAL_PYTHON_AVAILABLE:
+            raise RuntimeError("metal_python must be installed")
+
         self._module = module
         self.changed = False
         self.prefixes = None
