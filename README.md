@@ -13,9 +13,15 @@ The modules use [metal-python](https://github.com/metal-stack/metal-python) for 
 
 ## Dynamic Inventories
 
-| Inventory Name               | Description                                          |
-| ---------------------------- | ---------------------------------------------------- |
-| [Metal](inventory/metal)     | Dynamic inventory from metal-stack                   |
+| Inventory Name                  | Description                       |
+| ------------------------------- | --------------------------------- |
+| [metal.py](inventory/metal.py)  | Dynamic inventory for metal-stack |
+
+## Lookup Plugins
+
+| Inventory Name                       | Description         |
+| ------------------------------------ | ------------------- |
+| [metal](lookup_plugins/metal.py)     | Query the metal-api |
 
 ## Usage
 
