@@ -10,7 +10,7 @@ except ImportError:
     METAL_PYTHON_AVAILABLE = False
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal import AUTH_SPEC, init_driver
+from ansible.module_utils.metal import AUTH_SPEC, init_driver_for_module
 
 ANSIBLE_METADATA = {
     'metadata_version': '0.1',
@@ -111,7 +111,7 @@ class Instance(object):
         self._partition = module.params['partition']
         self._description = module.params.get('description')
         self._state = module.params.get('state')
-        self._driver = init_driver(self._module)
+        self._driver = init_driver_for_module(self._module)
         self._network_client = NetworkApi(api_client=self._driver.client)
 
         if self._id is None and (self._partition is None or self._project is None or self._name is None):

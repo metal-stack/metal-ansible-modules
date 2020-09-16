@@ -14,7 +14,7 @@ AUTH_SPEC = dict(
 )
 
 
-def init_driver(module):
+def init_driver_for_module(module):
     if not METAL_PYTHON_AVAILABLE:
         module.fail_json(msg="metal_python must be installed")
 
@@ -22,4 +22,8 @@ def init_driver(module):
     hmac = module.params.get("api_hmac", os.environ.get("METALCTL_HMAC"))
     token = module.params.get("api_token", os.environ.get("METALCTL_APITOKEN"))
 
+    return init_driver(url, hmac, token)
+
+
+def init_driver(url, hmac, token):
     return Driver(url, token, hmac)

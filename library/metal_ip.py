@@ -9,7 +9,7 @@ except ImportError:
     METAL_PYTHON_AVAILABLE = False
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal import AUTH_SPEC, init_driver
+from ansible.module_utils.metal import AUTH_SPEC, init_driver_for_module
 
 ANSIBLE_METADATA = {
     'metadata_version': '0.1',
@@ -123,7 +123,7 @@ class Instance(object):
         self._type = module.params.get('type')
         self._tags = module.params.get('tags')
         self._state = module.params.get('state')
-        self._driver = init_driver(self._module)
+        self._driver = init_driver_for_module(self._module)
         self._ip_client = IpApi(api_client=self._driver.client)
 
     def run(self):
