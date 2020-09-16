@@ -30,7 +30,7 @@ def run():
     if not METAL_PYTHON_AVAILABLE:
         # this allows to install metal_python during playbook execution, just refresh the inventory
         # after installation
-        return dict()
+        return return_json(dict())
 
     args = parse_arguments()
     if args.host:
