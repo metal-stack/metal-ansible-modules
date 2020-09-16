@@ -6,7 +6,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: metalstack/metal-deployment-base:v0.0.5
+    container: metalstack/metal-deployment-base:v0.0.6
     steps:
     - uses: actions/checkout@v2
     - name: Test

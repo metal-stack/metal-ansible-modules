@@ -1,4 +1,4 @@
-METAL_DEPLOYMENT_BASE_VERSION := v0.0.5
+METAL_DEPLOYMENT_BASE_VERSION := v0.0.6
 
 .PHONY: run-test-example
 run-test-example:

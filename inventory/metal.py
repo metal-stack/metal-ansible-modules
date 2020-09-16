@@ -19,9 +19,6 @@ URL = os.environ.get("METAL_ANSIBLE_INVENTORY_URL", CONFIG.get("url"))
 TOKEN = os.environ.get("METAL_ANSIBLE_INVENTORY_TOKEN", CONFIG.get("token"))
 HMAC = os.environ.get("METAL_ANSIBLE_INVENTORY_HMAC", CONFIG.get("hmac"))
 
-print(CONFIG_PATH)
-print(os.path.isfile(CONFIG_PATH))
-
 
 def run():
     args = parse_arguments()
@@ -118,6 +115,7 @@ def host_list():
         is_machine = False
         is_firewall = False
 
+        # TODO: Can be replaced when we have https://github.com/metal-stack/metal-api/issues/24
         if image:
             image_features = image.features
 
