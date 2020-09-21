@@ -49,7 +49,7 @@ options:
     hostname:
         description:
             - The hostname of the machine.
-        required: true
+        required: false
     project:
         description:
             - The project of the machine.
@@ -69,7 +69,7 @@ options:
     networks:
         description:
             - The networks of the machine.
-        required: true    
+        required: false    
     tags:
         description:
             - The tags of the machine.
@@ -216,12 +216,12 @@ def main():
         id=dict(type='str', required=False),
         name=dict(type='str', required=True),
         description=dict(type='str', required=False),
-        hostname=dict(type='str', required=True),
+        hostname=dict(type='str', required=False),
         project=dict(type='str', required=True),
         partition=dict(type='str', required=False),
         image=dict(type='str', required=False),
         size=dict(type='str', required=False),
-        networks=dict(type='list', required=True),
+        networks=dict(type='list', required=False),
         tags=dict(type='list', default=list(), required=False),
         ssh_pub_keys=dict(type='list', default=list(), required=False),
         userdata=dict(type='str', required=False),
