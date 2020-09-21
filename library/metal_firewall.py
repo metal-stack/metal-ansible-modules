@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 try:
-    from metal_python.api import FirewallApi
+    from metal_python.api import FirewallApi, MachineApi
     from metal_python import models
 
     METAL_PYTHON_AVAILABLE = True
@@ -141,6 +141,7 @@ class Instance(object):
         self._state = module.params.get('state')
         self._driver = init_driver_for_module(self._module)
         self._api_client = FirewallApi(api_client=self._driver.client)
+        self._machine_api_client = MachineApi(api_client=self._driver.client)
 
     def run(self):
         if self._module.check_mode:
@@ -207,7 +208,7 @@ class Instance(object):
         self.id = self._firewall.id
 
     def _firewall_free(self):
-        self._api_client.find_firewall(self.id)
+        self._machine_api_client.free_machine(self.id)
 
 
 def main():
