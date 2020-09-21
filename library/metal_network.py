@@ -115,7 +115,7 @@ class Instance(object):
         self._description = module.params.get('description')
         self._state = module.params.get('state')
         self._driver = init_driver_for_module(self._module)
-        self._network_client = NetworkApi(api_client=self._driver.client)
+        self._api_client = NetworkApi(api_client=self._driver.client)
 
         if self._id is None and (self._partition is None or self._project is None or self._name is None):
             module.fail_json(msg="either id or partition, project and name must be given")
@@ -140,13 +140,13 @@ class Instance(object):
 
     def _find(self):
         if self._id is not None:
-            self._network = self._network_client.find_network(self._id)
+            self._network = self._api_client.find_network(self._id)
             self.id = self._network.id
             self.prefixes = self._network.prefixes
             return
 
         r = models.V1NetworkFindRequest(name=self._name, partitionid=self._partition, projectid=self._project)
-        networks = self._network_client.find_networks(r)
+        networks = self._api_client.find_networks(r)
 
         if len(networks) > 1:
             self._module.fail_json(
@@ -160,12 +160,12 @@ class Instance(object):
 
     def _network_allocate(self):
         r = models.V1NetworkAllocateRequest(description=self._description, name= self._name, partitionid= self._partition, projectid=self._project)
-        self._network = self._network_client.allocate_network(r)
+        self._network = self._api_client.allocate_network(r)
         self.id = self._network.id
         self.prefixes = self._network.prefixes
 
     def _network_free(self):
-        self._network = self._network_client.free_network(self.id)
+        self._network = self._api_client.free_network(self.id)
         self.id = self._network.id
         self.prefixes = self._network.prefixes
 

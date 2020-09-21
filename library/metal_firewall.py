@@ -37,8 +37,11 @@ options:
         required: false
     name:
         description:
-            - The name of the firewall.
-        required: false
+            - >-
+              The name of the firewall, which must be unique within a project and partition 
+              (in case id is not provided).
+              Otherwise, the module cannot figure out if the firewall was already created or not.
+        required: true
     description:
         description:
             - The description of the firewall.
@@ -137,7 +140,7 @@ class Instance(object):
         self._userdata = module.params.get('userdata')
         self._state = module.params.get('state')
         self._driver = init_driver_for_module(self._module)
-        self._firewall_client = FirewallApi(api_client=self._driver.client)
+        self._api_client = FirewallApi(api_client=self._driver.client)
 
     def run(self):
         if self._module.check_mode:
@@ -160,10 +163,25 @@ class Instance(object):
                 self.changed = True
 
     def _find(self):
-        if not self.id:
+        if self.id:
+            self._firewall = self._api_client.find_firewall(self.id)
             return
 
-        self._firewall = self._firewall_client.find_firewall(self.id)
+        r = models.V1FirewallFindRequest(
+            allocation_name=self._name,
+            allocation_project=self._project,
+        )
+        firewalls = self._api_client.find_firewalls(r)
+
+        if len(firewalls) > 1:
+            self._module.fail_json(
+                msg="multiple firewalls of name '%s' exist in project '%s'. "
+                    "module idempotence depends on unique names within a project, "
+                    "please ensure unique names or id in params.",
+                project=self._project, name=self._name)
+        elif len(firewalls) == 1:
+            self._firewall = firewalls[0]
+            self.id = self._firewall.id
 
     def _firewall_allocate(self):
         networks = list()
@@ -185,18 +203,18 @@ class Instance(object):
             user_data=self._userdata,
         )
 
-        self._firewall = self._firewall_client.allocate_firewall(r)
+        self._firewall = self._api_client.allocate_firewall(r)
         self.id = self._firewall.id
 
     def _firewall_free(self):
-        self._firewall_client.find_firewall(self.id)
+        self._api_client.find_firewall(self.id)
 
 
 def main():
     argument_spec = AUTH_SPEC.copy()
     argument_spec.update(dict(
         id=dict(type='str', required=False),
-        name=dict(type='str', required=False),
+        name=dict(type='str', required=True),
         description=dict(type='str', required=False),
         hostname=dict(type='str', required=True),
         project=dict(type='str', required=True),

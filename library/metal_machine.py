@@ -37,8 +37,11 @@ options:
         required: false
     name:
         description:
-            - The name of the machine.
-        required: false
+            - >-
+              The name of the machine, which must be unique within a project and partition 
+              (in case id is not provided).
+              Otherwise, the module cannot figure out if the machine was already created or not.
+        required: true
     description:
         description:
             - The description of the machine.
@@ -137,7 +140,7 @@ class Instance(object):
         self._userdata = module.params.get('userdata')
         self._state = module.params.get('state')
         self._driver = init_driver_for_module(self._module)
-        self._machine_client = MachineApi(api_client=self._driver.client)
+        self._api_client = MachineApi(api_client=self._driver.client)
 
     def run(self):
         if self._module.check_mode:
@@ -160,10 +163,25 @@ class Instance(object):
                 self.changed = True
 
     def _find(self):
-        if not self.id:
+        if self.id:
+            self._machine = self._api_client.find_machine(self.id)
             return
 
-        self._machine = self._machine_client.find_machine(self.id)
+        r = models.V1MachineFindRequest(
+            allocation_name=self._name,
+            allocation_project=self._project,
+        )
+        machines = self._api_client.find_machines(r)
+
+        if len(machines) > 1:
+            self._module.fail_json(
+                msg="multiple machines of name '%s' exist in project '%s'. "
+                    "module idempotence depends on unique names within a project, "
+                    "please ensure unique names or id in params.",
+                project=self._project, name=self._name)
+        elif len(machines) == 1:
+            self._machine = machines[0]
+            self.id = self._machine.id
 
     def _machine_allocate(self):
         networks = list()
@@ -185,18 +203,18 @@ class Instance(object):
             user_data=self._userdata,
         )
 
-        self._machine = self._machine_client.allocate_machine(r)
+        self._machine = self._api_client.allocate_machine(r)
         self.id = self._machine.id
 
     def _machine_free(self):
-        self._machine_client.free_machine(self.id)
+        self._api_client.free_machine(self.id)
 
 
 def main():
     argument_spec = AUTH_SPEC.copy()
     argument_spec.update(dict(
         id=dict(type='str', required=False),
-        name=dict(type='str', required=False),
+        name=dict(type='str', required=True),
         description=dict(type='str', required=False),
         hostname=dict(type='str', required=True),
         project=dict(type='str', required=True),

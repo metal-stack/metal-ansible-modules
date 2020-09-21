@@ -124,7 +124,7 @@ class Instance(object):
         self._tags = module.params.get('tags')
         self._state = module.params.get('state')
         self._driver = init_driver_for_module(self._module)
-        self._ip_client = IpApi(api_client=self._driver.client)
+        self._api_client = IpApi(api_client=self._driver.client)
 
     def run(self):
         if self._module.check_mode:
@@ -150,7 +150,7 @@ class Instance(object):
         if not self.ip_address:
             return
 
-        self._ip = self._ip_client.find_ip(self.ip_address)
+        self._ip = self._api_client.find_ip(self.ip_address)
 
     def _ip_allocate(self):
         r = models.V1IPAllocateRequest(
@@ -162,11 +162,11 @@ class Instance(object):
             type=self._type
         )
 
-        self._ip = self._ip_client.allocate_ip(r)
+        self._ip = self._api_client.allocate_ip(r)
         self.ip_address = self._ip.ipaddress
 
     def _ip_free(self):
-        self._ip_client.free_ip(self.ip_address)
+        self._api_client.free_ip(self.ip_address)
 
 
 def main():
