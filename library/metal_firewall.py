@@ -238,7 +238,7 @@ def main():
 
     result = dict(
         changed=instance.changed,
-        ip=instance.id,
+        id=instance.id,
     )
 
     module.exit_json(**result)
