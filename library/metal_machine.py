@@ -41,7 +41,7 @@ options:
               The name of the machine, which must be unique within a project and partition 
               (in case id is not provided).
               Otherwise, the module cannot figure out if the machine was already created or not.
-        required: true
+        required: false
     description:
         description:
             - The description of the machine.
@@ -61,7 +61,7 @@ options:
     image:
         description:
             - The image of the machine.
-        required: true
+        required: false
     size:
         description:
             - The size of the machine.
@@ -134,13 +134,16 @@ class Instance(object):
         self._partition = module.params.get('partition')
         self._image = module.params.get('image')
         self._size = module.params.get('size')
-        self._networks = module.params.get('networks')
+        self._networks = module.params.get('networks') if module.params.get('networks') else []
         self._tags = module.params.get('tags')
         self._ssh_pub_keys = module.params.get('ssh_pub_keys')
         self._userdata = module.params.get('userdata')
         self._state = module.params.get('state')
         self._driver = init_driver_for_module(self._module)
         self._api_client = MachineApi(api_client=self._driver.client)
+
+        if self.id is None and (self._project is None or self._name is None):
+            module.fail_json(msg="either id or name must be given")
 
     def run(self):
         if self._module.check_mode:
@@ -214,7 +217,7 @@ def main():
     argument_spec = AUTH_SPEC.copy()
     argument_spec.update(dict(
         id=dict(type='str', required=False),
-        name=dict(type='str', required=True),
+        name=dict(type='str', required=False),
         description=dict(type='str', required=False),
         hostname=dict(type='str', required=False),
         project=dict(type='str', required=True),

@@ -8,12 +8,11 @@ from test import (
     MODULES_PATH,
 )
 from metal_python import models
-from test.mocks import api as apimock
 
 sys.path.insert(0, MODULES_PATH)
 
 
-class TestMetal(MetalModules):
+class TestMetalIPModule(MetalModules):
     def setUp(self):
         self.defaultSetUpTasks()
 
@@ -22,7 +21,7 @@ class TestMetal(MetalModules):
 
     @patch("metal_python.api.ip_api.IpApi.allocate_ip",
            side_effect=[
-               apimock.ip_response(
+               models.V1IPResponse(
                    ipaddress="212.34.89.212",
                    networkid="internet",
                    projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f")
@@ -61,7 +60,7 @@ class TestMetal(MetalModules):
 
     @patch("metal_python.api.ip_api.IpApi.find_ip",
            side_effect=[
-               apimock.ip_response(
+               models.V1IPResponse(
                    ipaddress="212.34.89.212",
                    networkid="internet",
                    projectid="2ada3f21-67fc-4432-a9ba-89b670245456")
@@ -94,7 +93,7 @@ class TestMetal(MetalModules):
     @patch("metal_python.api.ip_api.IpApi.find_ip", side_effect=[None])
     @patch("metal_python.api.ip_api.IpApi.allocate_ip",
            side_effect=[
-               apimock.ip_response(
+               models.V1IPResponse(
                    ipaddress="212.34.89.212",
                    networkid="internet",
                    projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f")
@@ -136,14 +135,14 @@ class TestMetal(MetalModules):
 
     @patch("metal_python.api.ip_api.IpApi.find_ip",
            side_effect=[
-               apimock.ip_response(
+               models.V1IPResponse(
                    ipaddress="212.34.89.212",
                    networkid="internet",
                    projectid="2ada3f21-67fc-4432-a9ba-89b670245456")
            ])
     @patch("metal_python.api.ip_api.IpApi.free_ip",
            side_effect=[
-               apimock.ip_response(
+               models.V1IPResponse(
                    ipaddress="212.34.89.212",
                    networkid="internet",
                    projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f")

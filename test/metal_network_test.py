@@ -8,12 +8,11 @@ from test import (
     MODULES_PATH,
 )
 from metal_python import models
-from test.mocks import api as apimock
 
 sys.path.insert(0, MODULES_PATH)
 
 
-class TestMetal(MetalModules):
+class TestMetalNetworkModule(MetalModules):
     def setUp(self):
         self.defaultSetUpTasks()
 
@@ -32,7 +31,7 @@ class TestMetal(MetalModules):
     @patch("metal_python.api.network_api.NetworkApi.find_networks",
            side_effect=[
                [
-                   apimock.network_response(id="02cc0b42-f675-4c7d-a671-f7a9c8214b61",
+                   models.V1NetworkResponse(id="02cc0b42-f675-4c7d-a671-f7a9c8214b61",
                                             prefixes=['10.0.156.0/22'],
                                             projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
                                             destinationprefixes=["0.0.0.0/0"],
@@ -81,7 +80,7 @@ class TestMetal(MetalModules):
            side_effect=[[]])
     @patch("metal_python.api.network_api.NetworkApi.allocate_network",
            side_effect=[
-               apimock.network_response(id="a-uuid",
+               models.V1NetworkResponse(id="a-uuid",
                                         prefixes=['10.0.0.0/22'],
                                         projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
                                         destinationprefixes=["0.0.0.0/0"],
@@ -135,7 +134,7 @@ class TestMetal(MetalModules):
     @patch("metal_python.api.network_api.NetworkApi.find_networks",
            side_effect=[
                [
-                   apimock.network_response(id="02cc0b42-f675-4c7d-a671-f7a9c8214b61",
+                   models.V1NetworkResponse(id="02cc0b42-f675-4c7d-a671-f7a9c8214b61",
                                             prefixes=['10.0.156.0/22'],
                                             projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
                                             destinationprefixes=["0.0.0.0/0"],
@@ -153,20 +152,20 @@ class TestMetal(MetalModules):
            ])
     @patch("metal_python.api.network_api.NetworkApi.free_network",
            side_effect=[
-                   apimock.network_response(id="02cc0b42-f675-4c7d-a671-f7a9c8214b61",
-                                            prefixes=['10.0.156.0/22'],
-                                            projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
-                                            destinationprefixes=["0.0.0.0/0"],
-                                            nat=True,
-                                            parentnetworkid="parent",
-                                            privatesuper=False,
-                                            underlay=False,
-                                            usage=models.V1NetworkUsage(
-                                                available_ips=10,
-                                                available_prefixes=1,
-                                                used_ips=1,
-                                                used_prefixes=1,
-                                            ))
+               models.V1NetworkResponse(id="02cc0b42-f675-4c7d-a671-f7a9c8214b61",
+                                        prefixes=['10.0.156.0/22'],
+                                        projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
+                                        destinationprefixes=["0.0.0.0/0"],
+                                        nat=True,
+                                        parentnetworkid="parent",
+                                        privatesuper=False,
+                                        underlay=False,
+                                        usage=models.V1NetworkUsage(
+                                            available_ips=10,
+                                            available_prefixes=1,
+                                            used_ips=1,
+                                            used_prefixes=1,
+                                        ))
            ])
     def test_network_absent(self, free_mock, find_mock):
         set_module_args(
