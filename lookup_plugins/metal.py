@@ -40,7 +40,10 @@ DOCUMENTATION = """
          - If set, request and entity can be omitted
          required: False
       query:
-        description: arbitrary query parameters
+        description: 
+          - Arbitrary query parameters passed on to the get request or request search body 
+          - It can be that certain query parameters overlap with the Ansible lookup plugin constructor (e.g. 'name').
+          - If this happens, you can prefix your parameter with an underscore, which will be removed before the request.
         required: False
     requirements:
       - "metal-python >= 0.9.0"
@@ -222,8 +225,6 @@ class LookupModule(LookupBase):
         hmac = kwargs.pop("api_hmac", variables.get("metal_api_hmac", os.environ.get("METALCTL_HMAC")))
         token = kwargs.pop("api_token", variables.get("metal_api_token", os.environ.get("METALCTL_APITOKEN")))
 
-        d = Driver(url, token, hmac)
-
         entity = kwargs.pop("entity", terms[1] if len(terms) == 2 else None)
         if not entity:
             raise AnsibleError("entity must be present and one of %s" % LookupModule._entities.keys())
@@ -232,12 +233,23 @@ class LookupModule(LookupBase):
         if request not in LookupModule._request_types:
             raise AnsibleError("request must be present and one of %s" % LookupModule._request_types)
 
+        # some query parameters overlap with default Ansible lookup plugin input params
+        # allow a user to use a query param by prepending an underscore
+        query = dict()
+        for k, v in kwargs.items():
+            if len(k) > 1 and k.startswith("_"):
+                query[k[1:]] = v
+            else:
+                query[k] = v
+
+        d = Driver(url, token, hmac)
+
         requester = LookupModule._entities[entity](client=d.client)
 
         if request == "get":
-            return [requester.get(**kwargs).to_dict()]
+            return [requester.get(**query).to_dict()]
 
         result = list()
-        for e in requester.search(**kwargs):
+        for e in requester.search(**query):
             result.append(e.to_dict())
         return [result]
