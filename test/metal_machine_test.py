@@ -58,7 +58,7 @@ class TestMetalMachineModule(MetalModules):
                        ledstate="",
                        liveliness="Alive",
                        state="",
-                       tags=[],
+                       tags=["ci.metal-stack.io/manager=ansible"],
                        allocation=models.V1MachineAllocation(
                            created="",
                            hostname="",
@@ -130,7 +130,7 @@ class TestMetalMachineModule(MetalModules):
                    ledstate="",
                    liveliness="Alive",
                    state="",
-                   tags=[],
+                   tags=["ci.metal-stack.io/manager=ansible"],
                    allocation=models.V1MachineAllocation(
                        created="",
                        hostname="",
@@ -184,8 +184,9 @@ class TestMetalMachineModule(MetalModules):
             partitionid="partition-id",
             sizeid="c1",
             networks=[],
+            ips=[],
             ssh_pub_keys=[],
-            tags=[],
+            tags=["ci.metal-stack.io/manager=ansible"],
         ))
 
         expected = dict(
@@ -214,7 +215,7 @@ class TestMetalMachineModule(MetalModules):
                        ledstate="",
                        liveliness="Alive",
                        state="",
-                       tags=[],
+                       tags=["ci.metal-stack.io/manager=ansible"],
                        allocation=models.V1MachineAllocation(
                            created="",
                            hostname="",
@@ -259,7 +260,7 @@ class TestMetalMachineModule(MetalModules):
                    ledstate="",
                    liveliness="Alive",
                    state="",
-                   tags=[],
+                   tags=["ci.metal-stack.io/manager=ansible"],
                    allocation=models.V1MachineAllocation(
                        created="",
                        hostname="",

@@ -24,7 +24,8 @@ class TestMetalIPModule(MetalModules):
                models.V1IPResponse(
                    ipaddress="212.34.89.212",
                    networkid="internet",
-                   projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f")
+                   projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
+                   tags=["ci.metal-stack.io/manager=ansible"])
            ])
     def test_ip_present_random_ip(self, mock):
         set_module_args(
@@ -48,6 +49,7 @@ class TestMetalIPModule(MetalModules):
                 name="test",
                 networkid="internet",
                 projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
+                tags=["ci.metal-stack.io/manager=ansible"],
                 type="ephemeral"
             )
         )
@@ -63,7 +65,8 @@ class TestMetalIPModule(MetalModules):
                models.V1IPResponse(
                    ipaddress="212.34.89.212",
                    networkid="internet",
-                   projectid="2ada3f21-67fc-4432-a9ba-89b670245456")
+                   projectid="2ada3f21-67fc-4432-a9ba-89b670245456",
+                   tags=["ci.metal-stack.io/manager=ansible"])
            ])
     def test_ip_present_static_ip_already_exists(self, mocks):
         set_module_args(
@@ -96,7 +99,8 @@ class TestMetalIPModule(MetalModules):
                models.V1IPResponse(
                    ipaddress="212.34.89.212",
                    networkid="internet",
-                   projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f")
+                   projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
+                   tags=["ci.metal-stack.io/manager=ansible"])
            ])
     def test_ip_present_static_ip_allocate(self, allocate_mock, find_mock):
         set_module_args(
@@ -123,7 +127,8 @@ class TestMetalIPModule(MetalModules):
                 name="shoot-ip-1",
                 networkid="internet",
                 projectid="2ada3f21-67fc-4432-a9ba-89b670245456",
-                type="ephemeral"
+                type="ephemeral",
+                tags=["ci.metal-stack.io/manager=ansible"],
             )
         )
 
@@ -138,14 +143,16 @@ class TestMetalIPModule(MetalModules):
                models.V1IPResponse(
                    ipaddress="212.34.89.212",
                    networkid="internet",
-                   projectid="2ada3f21-67fc-4432-a9ba-89b670245456")
+                   projectid="2ada3f21-67fc-4432-a9ba-89b670245456",
+                   tags=["ci.metal-stack.io/manager=ansible"])
            ])
     @patch("metal_python.api.ip_api.IpApi.free_ip",
            side_effect=[
                models.V1IPResponse(
                    ipaddress="212.34.89.212",
                    networkid="internet",
-                   projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f")
+                   projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
+                   tags=["ci.metal-stack.io/manager=ansible"])
            ])
     def test_ip_absent(self, free_mock, find_mock):
         set_module_args(
