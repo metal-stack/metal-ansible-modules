@@ -4,6 +4,7 @@
 try:
     from metal_python.api import ProjectApi
     from metal_python import models
+    from metal_python import rest
 
     METAL_PYTHON_AVAILABLE = True
 except ImportError:
@@ -127,7 +128,11 @@ class Instance(object):
 
     def _find(self):
         r = models.V1ProjectFindRequest(name=self._name)
-        projects = self._api_client.find_projects(r)
+        try:
+            projects = self._api_client.find_projects(r)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
+            return
 
         if projects is None:
             return

@@ -4,6 +4,7 @@
 try:
     from metal_python.api import NetworkApi
     from metal_python import models
+    from metal_python import rest
 
     METAL_PYTHON_AVAILABLE = True
 except ImportError:
@@ -147,7 +148,11 @@ class Instance(object):
             return
 
         r = models.V1NetworkFindRequest(name=self._name, partitionid=self._partition, projectid=self._project)
-        networks = self._api_client.find_networks(r)
+        try:
+            networks = self._api_client.find_networks(r)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
+            return
 
         if len(networks) > 1:
             self._module.fail_json(

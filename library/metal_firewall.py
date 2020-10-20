@@ -3,6 +3,7 @@
 try:
     from metal_python.api import FirewallApi, MachineApi
     from metal_python import models
+    from metal_python import rest
 
     METAL_PYTHON_AVAILABLE = True
 except ImportError:
@@ -180,7 +181,11 @@ class Instance(object):
             allocation_name=self._name,
             allocation_project=self._project,
         )
-        firewalls = self._api_client.find_firewalls(r)
+        try:
+            firewalls = self._api_client.find_firewalls(r)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
+            return
 
         if len(firewalls) > 1:
             self._module.fail_json(
