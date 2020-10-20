@@ -154,8 +154,9 @@ class Instance(object):
         try:
             self._ip = self._api_client.find_ip(self.ip_address)
         except rest.ApiException as e:
-            self._module.fail_json(msg="request to metal-api failed", error=str(e))
-            return
+            if e.status != 404:
+                self._module.fail_json(msg="request to metal-api failed", error=str(e))
+                return
 
     def _ip_allocate(self):
         self._tags.append(ANSIBLE_CI_MANAGED_TAG)
