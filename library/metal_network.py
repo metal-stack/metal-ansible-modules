@@ -10,7 +10,8 @@ except ImportError:
     METAL_PYTHON_AVAILABLE = False
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal import AUTH_SPEC, init_driver_for_module
+from ansible.module_utils.metal import AUTH_SPEC, ANSIBLE_CI_MANAGED_LABEL, ANSIBLE_CI_MANAGED_KEY, \
+    ANSIBLE_CI_MANAGED_VALUE, init_driver_for_module
 
 ANSIBLE_METADATA = {
     'metadata_version': '0.1',
@@ -159,12 +160,24 @@ class Instance(object):
             self.prefixes = self._network.prefixes
 
     def _network_allocate(self):
-        r = models.V1NetworkAllocateRequest(description=self._description, name= self._name, partitionid= self._partition, projectid=self._project)
+        labels = ANSIBLE_CI_MANAGED_LABEL
+
+        r = models.V1NetworkAllocateRequest(description=self._description,
+                                            name=self._name,
+                                            labels=labels,
+                                            partitionid=self._partition,
+                                            projectid=self._project)
+
         self._network = self._api_client.allocate_network(r)
         self.id = self._network.id
         self.prefixes = self._network.prefixes
 
     def _network_free(self):
+        if self._network.labels.get(ANSIBLE_CI_MANAGED_KEY) != ANSIBLE_CI_MANAGED_VALUE:
+            self._module.fail_json(msg="entity does not have label attached: %s" % ANSIBLE_CI_MANAGED_LABEL,
+                                   project=self._project,
+                                   name=self._name)
+
         self._network = self._api_client.free_network(self.id)
         self.id = self._network.id
         self.prefixes = self._network.prefixes

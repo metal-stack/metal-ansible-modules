@@ -21,9 +21,14 @@ CONFIG = dict()
 if os.path.isfile(CONFIG_PATH):
     with open(CONFIG_PATH, "r") as f:
         CONFIG = yaml.safe_load(f)
+
 URL = os.environ.get("METAL_ANSIBLE_INVENTORY_URL", CONFIG.get("url"))
 TOKEN = os.environ.get("METAL_ANSIBLE_INVENTORY_TOKEN", CONFIG.get("token"))
 HMAC = os.environ.get("METAL_ANSIBLE_INVENTORY_HMAC", CONFIG.get("hmac"))
+
+ANSIBLE_CI_MANAGED_KEY = "ci.metal-stack.io/manager"
+ANSIBLE_CI_MANAGED_VALUE = "ansible"
+ANSIBLE_CI_MANAGED_TAG = ANSIBLE_CI_MANAGED_KEY + "=" + ANSIBLE_CI_MANAGED_VALUE
 
 
 def run():
@@ -84,6 +89,9 @@ def host_list():
         size_id = machine.size.id if machine.size else None
         partition_id = machine.partition.id if machine.partition else None
         tags = machine.tags
+
+        if ANSIBLE_CI_MANAGED_TAG not in tags:
+            continue
 
         if allocation is None or not id:
             continue

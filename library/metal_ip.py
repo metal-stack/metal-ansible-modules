@@ -9,7 +9,7 @@ except ImportError:
     METAL_PYTHON_AVAILABLE = False
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal import AUTH_SPEC, init_driver_for_module
+from ansible.module_utils.metal import AUTH_SPEC, ANSIBLE_CI_MANAGED_TAG, init_driver_for_module
 
 ANSIBLE_METADATA = {
     'metadata_version': '0.1',
@@ -114,14 +114,14 @@ class Instance(object):
 
         self._module = module
         self.changed = False
-        self._ip = dict()
+        self._ip = None
         self.ip_address = module.params.get('ip')
         self._name = module.params.get('name')
         self._project = module.params.get('project')
         self._network = module.params.get('network')
         self._description = module.params.get('description')
         self._type = module.params.get('type')
-        self._tags = module.params.get('tags')
+        self._tags = module.params.get('tags') if module.params.get('tags') else []
         self._state = module.params.get('state')
         self._driver = init_driver_for_module(self._module)
         self._api_client = IpApi(api_client=self._driver.client)
@@ -153,6 +153,8 @@ class Instance(object):
         self._ip = self._api_client.find_ip(self.ip_address)
 
     def _ip_allocate(self):
+        self._tags.append(ANSIBLE_CI_MANAGED_TAG)
+
         r = models.V1IPAllocateRequest(
             description=self._description,
             name=self._name,
@@ -166,6 +168,11 @@ class Instance(object):
         self.ip_address = self._ip.ipaddress
 
     def _ip_free(self):
+        if ANSIBLE_CI_MANAGED_TAG not in self._ip.tags:
+            self._module.fail_json(msg="entity does not have label attached: %s" % ANSIBLE_CI_MANAGED_TAG,
+                                   project=self._project,
+                                   name=self._name)
+
         self._api_client.free_ip(self.ip_address)
 
 
