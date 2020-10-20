@@ -9,7 +9,7 @@ except ImportError:
     METAL_PYTHON_AVAILABLE = False
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal import AUTH_SPEC, init_driver_for_module
+from ansible.module_utils.metal import AUTH_SPEC, ANSIBLE_CI_MANAGED_TAG, init_driver_for_module
 
 ANSIBLE_METADATA = {
     'metadata_version': '0.1',
@@ -69,7 +69,11 @@ options:
     networks:
         description:
             - The networks of the machine.
-        required: false    
+        required: false   
+    ips:
+        description:
+            - The ips of the machine.
+        required: false 
     tags:
         description:
             - The tags of the machine.
@@ -125,7 +129,7 @@ class Instance(object):
 
         self._module = module
         self.changed = False
-        self._machine = dict()
+        self._machine = None
         self.id = module.params.get('id')
         self._name = module.params.get('name')
         self._description = module.params.get('description')
@@ -135,7 +139,8 @@ class Instance(object):
         self._image = module.params.get('image')
         self._size = module.params.get('size')
         self._networks = module.params.get('networks') if module.params.get('networks') else []
-        self._tags = module.params.get('tags')
+        self._ips = module.params.get('ips') if module.params.get('ips') else []
+        self._tags = module.params.get('tags') if module.params.get('tags') else []
         self._ssh_pub_keys = module.params.get('ssh_pub_keys')
         self._userdata = module.params.get('userdata')
         self._state = module.params.get('state')
@@ -191,6 +196,8 @@ class Instance(object):
         for n in self._networks:
             networks.append(models.V1MachineAllocationNetwork(autoacquire=True, networkid=n))
 
+        self._tags.append(ANSIBLE_CI_MANAGED_TAG)
+
         r = models.V1MachineAllocateRequest(
             uuid=self.id if self.id else None,
             name=self._name,
@@ -199,6 +206,7 @@ class Instance(object):
             partitionid=self._partition,
             projectid=self._project,
             imageid=self._image,
+            ips=self._ips,
             sizeid=self._size,
             networks=networks,
             tags=self._tags,
@@ -210,6 +218,11 @@ class Instance(object):
         self.id = self._machine.id
 
     def _machine_free(self):
+        if ANSIBLE_CI_MANAGED_TAG not in self._machine.tags:
+            self._module.fail_json(msg="entity does not have label attached: %s" % ANSIBLE_CI_MANAGED_TAG,
+                                   project=self._project,
+                                   name=self._name)
+
         self._api_client.free_machine(self.id)
 
 
@@ -225,6 +238,7 @@ def main():
         image=dict(type='str', required=False),
         size=dict(type='str', required=False),
         networks=dict(type='list', required=False),
+        ips=dict(type='list', required=False),
         tags=dict(type='list', default=list(), required=False),
         ssh_pub_keys=dict(type='list', default=list(), required=False),
         userdata=dict(type='str', required=False),

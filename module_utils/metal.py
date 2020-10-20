@@ -12,6 +12,10 @@ AUTH_SPEC = dict(
     api_hmac=dict(type='str', required=False, no_log=True),
     api_token=dict(type='str', required=False, no_log=True),
 )
+ANSIBLE_CI_MANAGED_KEY = "ci.metal-stack.io/manager"
+ANSIBLE_CI_MANAGED_VALUE = "ansible"
+ANSIBLE_CI_MANAGED_TAG = ANSIBLE_CI_MANAGED_KEY + "=" + ANSIBLE_CI_MANAGED_VALUE
+ANSIBLE_CI_MANAGED_LABEL = {ANSIBLE_CI_MANAGED_KEY: ANSIBLE_CI_MANAGED_VALUE}
 
 
 def init_driver_for_module(module):
