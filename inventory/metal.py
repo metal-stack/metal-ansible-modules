@@ -159,11 +159,14 @@ def host_list():
             metal_tags=tags,
         )
 
-        _append_to_inventory(inventory, project_id, hostname)
-        _append_to_inventory(inventory, size_id, hostname)
-        _append_to_inventory(inventory, partition_id, hostname)
-        _append_to_inventory(inventory, image_id, hostname)
-        _append_to_inventory(inventory, "metal", hostname)
+        if is_machine:
+            _append_to_inventory(inventory, project_id, hostname)
+            _append_to_inventory(inventory, size_id, hostname)
+            _append_to_inventory(inventory, partition_id, hostname)
+            _append_to_inventory(inventory, image_id, hostname)
+            _append_to_inventory(inventory, "metal", hostname)
+        else:
+            _append_to_inventory(inventory, "metal-firewalls", hostname)
 
         if internal_ip:
             machine_meta[hostname]["metal_internal_ip"] = internal_ip
