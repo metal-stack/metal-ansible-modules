@@ -22,9 +22,10 @@ if os.path.isfile(CONFIG_PATH):
     with open(CONFIG_PATH, "r") as f:
         CONFIG = yaml.safe_load(f)
 
-URL = os.environ.get("METAL_ANSIBLE_INVENTORY_URL", CONFIG.get("url"))
-TOKEN = os.environ.get("METAL_ANSIBLE_INVENTORY_TOKEN", CONFIG.get("token"))
-HMAC = os.environ.get("METAL_ANSIBLE_INVENTORY_HMAC", CONFIG.get("hmac"))
+URL = CONFIG.get("url", os.environ.get("METAL_ANSIBLE_INVENTORY_URL", os.environ.get("METALCTL_URL")))
+TOKEN = CONFIG.get("token", os.environ.get("METAL_ANSIBLE_INVENTORY_TOKEN"))
+HMAC = CONFIG.get("hmac", os.environ.get("METAL_ANSIBLE_INVENTORY_HMAC", os.environ.get("METALCTL_HMAC")))
+HMAC_USER = CONFIG.get("hmac_user", "Metal-Edit")
 
 ANSIBLE_CI_MANAGED_KEY = "ci.metal-stack.io/manager"
 ANSIBLE_CI_MANAGED_VALUE = "ansible"
@@ -62,7 +63,7 @@ def parse_arguments():
 
 
 def host_list():
-    d = Driver(url=URL, bearer=TOKEN, hmac_key=HMAC, hmac_user="Metal-Edit")
+    d = Driver(url=URL, bearer=TOKEN, hmac_key=HMAC, hmac_user=HMAC_USER)
 
     request = models.V1MachineFindRequest()
     scope_filters = CONFIG.get("scope_filters", [])
