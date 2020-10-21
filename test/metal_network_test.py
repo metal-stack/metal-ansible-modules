@@ -41,6 +41,7 @@ class TestMetalNetworkModule(MetalModules):
                                             parentnetworkid="parent",
                                             privatesuper=False,
                                             underlay=False,
+                                            shared=False,
                                             labels={"ci.metal-stack.io/manager": "ansible"},
                                             usage=models.V1NetworkUsage(
                                                 available_ips=10,
@@ -92,6 +93,7 @@ class TestMetalNetworkModule(MetalModules):
                                             parentnetworkid="parent",
                                             privatesuper=False,
                                             underlay=False,
+                                            shared=False,
                                             labels={"ci.metal-stack.io/manager": "ansible"},
                                             usage=models.V1NetworkUsage(
                                                 available_ips=10,
@@ -113,6 +115,7 @@ class TestMetalNetworkModule(MetalModules):
                                         parentnetworkid="parent",
                                         privatesuper=False,
                                         underlay=False,
+                                        shared=False,
                                         labels={"ci.metal-stack.io/manager": "ansible"},
                                         usage=models.V1NetworkUsage(
                                             available_ips=10,
@@ -167,6 +170,7 @@ class TestMetalNetworkModule(MetalModules):
                                         parentnetworkid="parent",
                                         privatesuper=False,
                                         underlay=False,
+                                        shared=False,
                                         labels={"ci.metal-stack.io/manager": "ansible"},
                                         usage=models.V1NetworkUsage(
                                             available_ips=10,
@@ -202,6 +206,7 @@ class TestMetalNetworkModule(MetalModules):
             partitionid="fra-equ01",
             description="b",
             projectid="a-uuid",
+            shared=False,
             labels={"ci.metal-stack.io/manager": "ansible"},
         ))
 

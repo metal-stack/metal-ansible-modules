@@ -115,6 +115,7 @@ class Instance(object):
         self._partition = module.params['partition']
         self._description = module.params.get('description')
         self._state = module.params.get('state')
+        self._shared = module.params.get('shared')
         self._driver = init_driver_for_module(self._module)
         self._api_client = NetworkApi(api_client=self._driver.client)
 
@@ -175,6 +176,10 @@ class Instance(object):
             self.changed = True
             r.description = self._description
 
+        if self._network.shared != self._shared:
+            self.changed = True
+            r.shared = self._shared
+
         if self.changed:
             try:
                 self._network = self._api_client.update_network(r)
@@ -187,6 +192,7 @@ class Instance(object):
         r = models.V1NetworkAllocateRequest(description=self._description,
                                             name=self._name,
                                             labels=labels,
+                                            shared=self._shared,
                                             partitionid=self._partition,
                                             projectid=self._project)
 
@@ -221,6 +227,7 @@ def main():
         project=dict(type='str', required=False),
         description=dict(type='str', required=False),
         partition=dict(type='str', required=False),
+        shared=dict(type='bool', default=False),
         state=dict(type='str', choices=['present', 'absent'], default='present'),
     ))
     module = AnsibleModule(
