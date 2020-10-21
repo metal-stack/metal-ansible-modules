@@ -3,6 +3,7 @@
 try:
     from metal_python.api import MachineApi
     from metal_python import models
+    from metal_python import rest
 
     METAL_PYTHON_AVAILABLE = True
 except ImportError:
@@ -28,7 +29,6 @@ version_added: "2.8"
 description:
     - Manages machine entities in the metal-api.
     - Requires metal_python to be installed.
-    - Cannot update entities.
 
 options:
     id:
@@ -69,6 +69,7 @@ options:
     networks:
         description:
             - The networks of the machine.
+            - IP acquisition mode can be specified by adding :auto or :noauto to the network name.
         required: false   
     ips:
         description:
@@ -160,14 +161,14 @@ class Instance(object):
             if self._machine:
                 return
 
-            self._machine_allocate()
+            self._allocate()
             self.changed = True
 
         elif self._state == "absent":
             if not self.id:
                 self._module.fail_json(msg="id is a required argument when state is absent")
             if self._machine:
-                self._machine_free()
+                self._free()
                 self.changed = True
 
     def _find(self):
@@ -179,7 +180,11 @@ class Instance(object):
             allocation_name=self._name,
             allocation_project=self._project,
         )
-        machines = self._api_client.find_machines(r)
+        try:
+            machines = self._api_client.find_machines(r)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
+            return
 
         if len(machines) > 1:
             self._module.fail_json(
@@ -191,10 +196,23 @@ class Instance(object):
             self._machine = machines[0]
             self.id = self._machine.id
 
-    def _machine_allocate(self):
+    def _allocate(self):
         networks = list()
         for n in self._networks:
-            networks.append(models.V1MachineAllocationNetwork(autoacquire=True, networkid=n))
+            auto_acquire = True
+            network_id = n
+            if ":" in n:
+                network_id = n.split(":")[0]
+                mode = n.split(":")[-1]
+                if mode == "noauto":
+                    auto_acquire = False
+                elif mode == "auto":
+                    auto_acquire = True
+                else:
+                    self._module.fail_json(
+                        msg="network acquisition mode not supported: %s" % mode)
+
+            networks.append(models.V1MachineAllocationNetwork(autoacquire=auto_acquire, networkid=network_id))
 
         self._tags.append(ANSIBLE_CI_MANAGED_TAG)
 
@@ -214,16 +232,23 @@ class Instance(object):
             user_data=self._userdata,
         )
 
-        self._machine = self._api_client.allocate_machine(r)
+        try:
+            self._machine = self._api_client.allocate_machine(r)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
+
         self.id = self._machine.id
 
-    def _machine_free(self):
+    def _free(self):
         if ANSIBLE_CI_MANAGED_TAG not in self._machine.tags:
             self._module.fail_json(msg="entity does not have label attached: %s" % ANSIBLE_CI_MANAGED_TAG,
                                    project=self._project,
                                    name=self._name)
 
-        self._api_client.free_machine(self.id)
+        try:
+            self._api_client.free_machine(self.id)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
 
 
 def main():

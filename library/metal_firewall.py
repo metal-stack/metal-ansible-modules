@@ -3,6 +3,7 @@
 try:
     from metal_python.api import FirewallApi, MachineApi
     from metal_python import models
+    from metal_python import rest
 
     METAL_PYTHON_AVAILABLE = True
 except ImportError:
@@ -28,7 +29,6 @@ version_added: "2.8"
 description:
     - Manages firewall entities in the metal-api.
     - Requires metal_python to be installed.
-    - Cannot update entities.
 
 options:
     id:
@@ -161,14 +161,14 @@ class Instance(object):
             if self._firewall:
                 return
 
-            self._firewall_allocate()
+            self._allocate()
             self.changed = True
 
         elif self._state == "absent":
             if not self.id:
                 self._module.fail_json(msg="id is a required argument when state is absent")
             if self._firewall:
-                self._firewall_free()
+                self._free()
                 self.changed = True
 
     def _find(self):
@@ -180,7 +180,11 @@ class Instance(object):
             allocation_name=self._name,
             allocation_project=self._project,
         )
-        firewalls = self._api_client.find_firewalls(r)
+        try:
+            firewalls = self._api_client.find_firewalls(r)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
+            return
 
         if len(firewalls) > 1:
             self._module.fail_json(
@@ -192,7 +196,7 @@ class Instance(object):
             self._firewall = firewalls[0]
             self.id = self._firewall.id
 
-    def _firewall_allocate(self):
+    def _allocate(self):
         networks = list()
         for n in self._networks:
             networks.append(models.V1MachineAllocationNetwork(autoacquire=True, networkid=n))
@@ -215,16 +219,23 @@ class Instance(object):
             user_data=self._userdata,
         )
 
-        self._firewall = self._api_client.allocate_firewall(r)
+        try:
+            self._firewall = self._api_client.allocate_firewall(r)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
+
         self.id = self._firewall.id
 
-    def _firewall_free(self):
+    def _free(self):
         if ANSIBLE_CI_MANAGED_TAG not in self._firewall.tags:
             self._module.fail_json(msg="entity does not have label attached: %s" % ANSIBLE_CI_MANAGED_TAG,
                                    project=self._project,
                                    name=self._name)
 
-        self._machine_api_client.free_machine(self.id)
+        try:
+            self._machine_api_client.free_machine(self.id)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
 
 
 def main():

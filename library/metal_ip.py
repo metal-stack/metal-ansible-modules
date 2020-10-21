@@ -3,6 +3,7 @@
 try:
     from metal_python.api import IpApi
     from metal_python import models
+    from metal_python import rest
 
     METAL_PYTHON_AVAILABLE = True
 except ImportError:
@@ -28,7 +29,6 @@ version_added: "2.8"
 description:
     - Manages ip entities in the metal-api.
     - Requires metal_python to be installed.
-    - Cannot update entities.
 
 options:
     name:
@@ -134,25 +134,60 @@ class Instance(object):
 
         if self._state == "present":
             if self._ip:
+                self._update()
                 return
 
-            self._ip_allocate()
+            self._allocate()
             self.changed = True
 
         elif self._state == "absent":
             if not self.ip_address:
                 self._module.fail_json(msg="ip is a required argument when state is absent")
             if self._ip:
-                self._ip_free()
+                self._free()
                 self.changed = True
 
     def _find(self):
         if not self.ip_address:
             return
 
-        self._ip = self._api_client.find_ip(self.ip_address)
+        try:
+            self._ip = self._api_client.find_ip(self.ip_address)
+        except rest.ApiException as e:
+            if e.status != 404:
+                self._module.fail_json(msg="request to metal-api failed", error=str(e))
+                return
 
-    def _ip_allocate(self):
+    def _update(self):
+        r = models.V1IPUpdateRequest(
+            ipaddress=self.ip_address,
+            type=self._ip.type,
+        )
+
+        if self._ip.description != self._description:
+            self.changed = True
+            r.description = self._description
+
+        if self._ip.name != self._name:
+            self.changed = True
+            r.name = self._name
+
+        self._tags.append(ANSIBLE_CI_MANAGED_TAG)
+        if self._ip.tags != self._tags:
+            self.changed = True
+            r.tags = self._tags
+
+        if self._ip.type != self._type:
+            self.changed = True
+            r.type = self._type
+
+        if self.changed:
+            try:
+                self._ip = self._api_client.update_ip(r)
+            except rest.ApiException as e:
+                self._module.fail_json(msg="request to metal-api failed", error=str(e))
+
+    def _allocate(self):
         self._tags.append(ANSIBLE_CI_MANAGED_TAG)
 
         r = models.V1IPAllocateRequest(
@@ -164,16 +199,23 @@ class Instance(object):
             type=self._type
         )
 
-        self._ip = self._api_client.allocate_ip(r)
+        try:
+            self._ip = self._api_client.allocate_ip(r)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
+
         self.ip_address = self._ip.ipaddress
 
-    def _ip_free(self):
+    def _free(self):
         if ANSIBLE_CI_MANAGED_TAG not in self._ip.tags:
             self._module.fail_json(msg="entity does not have label attached: %s" % ANSIBLE_CI_MANAGED_TAG,
                                    project=self._project,
                                    name=self._name)
 
-        self._api_client.free_ip(self.ip_address)
+        try:
+            self._api_client.free_ip(self.ip_address)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
 
 
 def main():

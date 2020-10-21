@@ -10,6 +10,7 @@ except ImportError:
 AUTH_SPEC = dict(
     api_url=dict(type='str', required=False),
     api_hmac=dict(type='str', required=False, no_log=True),
+    api_hmac_user=dict(type='str', required=False, default='Metal-Edit'),
     api_token=dict(type='str', required=False, no_log=True),
 )
 ANSIBLE_CI_MANAGED_KEY = "ci.metal-stack.io/manager"
@@ -25,9 +26,10 @@ def init_driver_for_module(module):
     url = module.params.get("api_url", os.environ.get("METALCTL_URL"))
     hmac = module.params.get("api_hmac", os.environ.get("METALCTL_HMAC"))
     token = module.params.get("api_token", os.environ.get("METALCTL_APITOKEN"))
+    hmac_user = module.params.get("api_hmac_user")
 
-    return init_driver(url, hmac, token)
+    return init_driver(url, hmac, token, hmac_user)
 
 
-def init_driver(url, hmac, token):
-    return Driver(url, token, hmac)
+def init_driver(url, hmac, token, hmac_user):
+    return Driver(url, token, hmac, hmac_user=hmac_user)

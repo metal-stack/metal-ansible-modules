@@ -165,6 +165,7 @@ class TestMetalMachineModule(MetalModules):
                 partition="partition-id",
                 size="c1",
                 image="ubuntu",
+                networks=["internet"]
             )
         )
 
@@ -183,7 +184,94 @@ class TestMetalMachineModule(MetalModules):
             imageid="ubuntu",
             partitionid="partition-id",
             sizeid="c1",
-            networks=[],
+            networks=[models.V1MachineAllocationNetwork(autoacquire=True, networkid="internet")],
+            ips=[],
+            ssh_pub_keys=[],
+            tags=["ci.metal-stack.io/manager=ansible"],
+        ))
+
+        expected = dict(
+            id="5345b85e-9841-4699-b20e-0efaa806b690",
+            changed=True,
+        )
+        self.assertDictEqual(result.exception.module_results, expected)
+
+    @patch("metal_python.api.machine_api.MachineApi.find_machines",
+           side_effect=[[]])
+    @patch("metal_python.api.machine_api.MachineApi.allocate_machine",
+           side_effect=[
+               models.V1MachineResponse(
+                   id="5345b85e-9841-4699-b20e-0efaa806b690",
+                   bios=models.V1MachineBIOS(
+                       _date="",
+                       vendor="",
+                       version="",
+                   ),
+                   events=[],
+                   hardware=models.V1MachineHardware(
+                       cpu_cores=4,
+                       disks=[],
+                       memory=1024,
+                       nics=[],
+                   ),
+                   ledstate="",
+                   liveliness="Alive",
+                   state="",
+                   tags=["ci.metal-stack.io/manager=ansible"],
+                   allocation=models.V1MachineAllocation(
+                       created="",
+                       hostname="",
+                       name="",
+                       project="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
+                       reinstall=False,
+                       ssh_pub_keys=[],
+                       succeeded=True,
+                       networks=[
+                           models.V1MachineNetwork(
+                               asn="",
+                               destinationprefixes=[],
+                               ips=[],
+                               nat=True,
+                               underlay=False,
+                               private=False,
+                               networkid="",
+                               prefixes=[],
+                               vrf=0,
+                           ),
+                       ],
+                   ),
+               )
+           ])
+    def test_machine_present_allocate_no_auto(self, allocate_mock, find_mock):
+        set_module_args(
+            dict(
+                api_url="http://somewhere",
+                api_hmac="hmac",
+                name="test2",
+                project="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
+                partition="partition-id",
+                size="c1",
+                image="ubuntu",
+                networks=["internet:noauto"]
+            )
+        )
+
+        with self.assertRaises(AnsibleExitJson) as result:
+            self.module.main()
+
+        find_mock.assert_called()
+        find_mock.assert_called_with(models.V1MachineFindRequest(
+            allocation_project="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
+            allocation_name="test2",
+        ))
+        allocate_mock.assert_called()
+        allocate_mock.assert_called_with(models.V1MachineAllocateRequest(
+            name="test2",
+            projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
+            imageid="ubuntu",
+            partitionid="partition-id",
+            sizeid="c1",
+            networks=[models.V1MachineAllocationNetwork(autoacquire=False, networkid="internet")],
             ips=[],
             ssh_pub_keys=[],
             tags=["ci.metal-stack.io/manager=ansible"],

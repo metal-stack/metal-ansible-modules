@@ -32,6 +32,8 @@ class TestMetalNetworkModule(MetalModules):
            side_effect=[
                [
                    models.V1NetworkResponse(id="02cc0b42-f675-4c7d-a671-f7a9c8214b61",
+                                            name="test",
+                                            description="b",
                                             prefixes=['10.0.156.0/22'],
                                             projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
                                             destinationprefixes=["0.0.0.0/0"],
@@ -74,6 +76,82 @@ class TestMetalNetworkModule(MetalModules):
             id="02cc0b42-f675-4c7d-a671-f7a9c8214b61",
             prefixes=['10.0.156.0/22'],
             changed=False,
+        )
+        self.assertDictEqual(result.exception.module_results, expected)
+
+    @patch("metal_python.api.network_api.NetworkApi.find_networks",
+           side_effect=[
+               [
+                   models.V1NetworkResponse(id="02cc0b42-f675-4c7d-a671-f7a9c8214b61",
+                                            name="test",
+                                            description="b",
+                                            prefixes=['10.0.156.0/22'],
+                                            projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
+                                            destinationprefixes=["0.0.0.0/0"],
+                                            nat=True,
+                                            parentnetworkid="parent",
+                                            privatesuper=False,
+                                            underlay=False,
+                                            labels={"ci.metal-stack.io/manager": "ansible"},
+                                            usage=models.V1NetworkUsage(
+                                                available_ips=10,
+                                                available_prefixes=1,
+                                                used_ips=1,
+                                                used_prefixes=1,
+                                            ))
+               ]
+           ])
+    @patch("metal_python.api.network_api.NetworkApi.update_network",
+           side_effect=[
+               models.V1NetworkResponse(id="02cc0b42-f675-4c7d-a671-f7a9c8214b61",
+                                        name="new-name",
+                                        description="new",
+                                        prefixes=['10.0.156.0/22'],
+                                        projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
+                                        destinationprefixes=["0.0.0.0/0"],
+                                        nat=True,
+                                        parentnetworkid="parent",
+                                        privatesuper=False,
+                                        underlay=False,
+                                        labels={"ci.metal-stack.io/manager": "ansible"},
+                                        usage=models.V1NetworkUsage(
+                                            available_ips=10,
+                                            available_prefixes=1,
+                                            used_ips=1,
+                                            used_prefixes=1,
+                                        ))
+           ])
+    def test_network_present_update(self, update_mock, find_mock):
+        set_module_args(
+            dict(
+                api_url="http://somewhere",
+                api_hmac="hmac",
+                name="test",
+                description="new",
+                partition="fra-equ01",
+                project="12e1b1db-44d7-4f57-9c9d-5799b582ab8f"
+            )
+        )
+
+        with self.assertRaises(AnsibleExitJson) as result:
+            self.module.main()
+
+        find_mock.assert_called()
+        find_mock.assert_called_with(models.V1NetworkFindRequest(
+            partitionid="fra-equ01",
+            projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
+            name="test",
+        ))
+        update_mock.assert_called()
+        update_mock.assert_called_with(models.V1NetworkUpdateRequest(
+            id="02cc0b42-f675-4c7d-a671-f7a9c8214b61",
+            description="new",
+        ))
+
+        expected = dict(
+            id="02cc0b42-f675-4c7d-a671-f7a9c8214b61",
+            prefixes=['10.0.156.0/22'],
+            changed=True,
         )
         self.assertDictEqual(result.exception.module_results, expected)
 

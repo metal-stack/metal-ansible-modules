@@ -64,8 +64,11 @@ class TestMetalIPModule(MetalModules):
            side_effect=[
                models.V1IPResponse(
                    ipaddress="212.34.89.212",
+                   name="shoot-ip-1",
+                   description="b",
                    networkid="internet",
                    projectid="2ada3f21-67fc-4432-a9ba-89b670245456",
+                   type="ephemeral",
                    tags=["ci.metal-stack.io/manager=ansible"])
            ])
     def test_ip_present_static_ip_already_exists(self, mocks):
@@ -90,6 +93,63 @@ class TestMetalIPModule(MetalModules):
         expected = dict(
             ip="212.34.89.212",
             changed=False,
+        )
+        self.assertDictEqual(result.exception.module_results, expected)
+
+    @patch("metal_python.api.ip_api.IpApi.find_ip",
+           side_effect=[
+               models.V1IPResponse(
+                   ipaddress="212.34.89.212",
+                   name="shoot-ip-1",
+                   description="b",
+                   networkid="internet",
+                   projectid="2ada3f21-67fc-4432-a9ba-89b670245456",
+                   type="ephemeral",
+                   tags=["ci.metal-stack.io/manager=ansible"])
+           ])
+    @patch("metal_python.api.ip_api.IpApi.update_ip",
+           side_effect=[
+               models.V1IPResponse(
+                   ipaddress="212.34.89.212",
+                   name="shoot-ip-1",
+                   description="b",
+                   networkid="internet",
+                   projectid="2ada3f21-67fc-4432-a9ba-89b670245456",
+                   type="ephemeral",
+                   tags=["ci.metal-stack.io/manager=ansible"])
+           ])
+    def test_ip_present_static_ip_update(self, update_mock, find_mock):
+        set_module_args(
+            dict(
+                api_url="http://somewhere",
+                api_hmac="hmac",
+                name="shoot-ip-1",
+                ip="212.34.89.212",
+                description="b",
+                network="internet",
+                tags=["a-new-tag"],
+                project="2ada3f21-67fc-4432-a9ba-89b670245456"
+            )
+        )
+
+        with self.assertRaises(AnsibleExitJson) as result:
+            self.module.main()
+
+        find_mock.assert_called()
+        find_mock.assert_called_with("212.34.89.212")
+
+        update_mock.assert_called()
+        update_mock.assert_called_with(
+            models.V1IPUpdateRequest(
+                ipaddress="212.34.89.212",
+                type="ephemeral",
+                tags=["a-new-tag", "ci.metal-stack.io/manager=ansible"],
+            )
+        )
+
+        expected = dict(
+            ip="212.34.89.212",
+            changed=True,
         )
         self.assertDictEqual(result.exception.module_results, expected)
 
