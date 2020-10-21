@@ -31,7 +31,6 @@ version_added: "2.8"
 description:
     - Manages project entities in the metal-api.
     - Requires metal_python to be installed.
-    - Cannot update entities.
 
 options:
     name:
@@ -116,14 +115,15 @@ class Instance(object):
 
         if self._state == "present":
             if self._project:
+                self._update()
                 return
 
-            self._project_allocate()
+            self._create()
             self.changed = True
 
         elif self._state == "absent":
             if self._project:
-                self._project_free()
+                self._delete()
                 self.changed = True
 
     def _find(self):
@@ -145,33 +145,62 @@ class Instance(object):
             self._project = projects[0]
             self.id = self._project.meta.id
 
-    def _project_allocate(self):
-        labels = ANSIBLE_CI_MANAGED_LABEL
+    def _update(self):
+        meta = models.V1Meta(id=self.id)
+        r = models.V1ProjectUpdateRequest(description=None, meta=meta, name=None, quotas=None, tenant_id=None)
+
+        if self._project.description != self._description:
+            self.changed = True
+            r.description = self._description
+
+        if self._project.tenant_id != self._tenant:
+            self.changed = True
+            r.tenant_id = self._tenant
+
+        if self._project.meta.labels != self._labels:
+            self.changed = True
+            meta.labels = self._labels
+
+        if self.changed:
+            try:
+                self._project = self._api_client.update_project(r)
+            except rest.ApiException as e:
+                self._module.fail_json(msg="request to metal-api failed", error=str(e))
+
+    def _create(self):
+        annotations = ANSIBLE_CI_MANAGED_LABEL
 
         r = models.V1ProjectCreateRequest(description=self._description,
-                                          meta=dict(
-                                              annotations=labels,
+                                          meta=models.V1Meta(
+                                              annotations=annotations,
                                               labels=self._labels,
                                           ),
                                           name=self._name,
                                           tenant_id=self._tenant)
 
-        self._project = self._api_client.create_project(r)
+        try:
+            self._project = self._api_client.create_project(r)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
+
         self.id = self._project.meta.id
 
-    def _project_free(self):
+    def _delete(self):
         if self._project.meta.annotations.get(ANSIBLE_CI_MANAGED_KEY) != ANSIBLE_CI_MANAGED_VALUE:
             self._module.fail_json(msg="entity does not have label attached: %s" % ANSIBLE_CI_MANAGED_LABEL,
                                    name=self._name)
 
-        self._project = self._api_client.delete_project(self.id)
+        try:
+            self._project = self._api_client.delete_project(self.id)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
+
         self.id = self._project.meta.id
 
 
 def main():
     argument_spec = AUTH_SPEC.copy()
     argument_spec.update(dict(
-        id=dict(type='str', required=False),
         name=dict(type='str', required=True),
         tenant=dict(type='str', required=False),
         description=dict(type='str', required=False),

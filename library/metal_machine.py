@@ -29,7 +29,6 @@ version_added: "2.8"
 description:
     - Manages machine entities in the metal-api.
     - Requires metal_python to be installed.
-    - Cannot update entities.
 
 options:
     id:
@@ -162,14 +161,14 @@ class Instance(object):
             if self._machine:
                 return
 
-            self._machine_allocate()
+            self._allocate()
             self.changed = True
 
         elif self._state == "absent":
             if not self.id:
                 self._module.fail_json(msg="id is a required argument when state is absent")
             if self._machine:
-                self._machine_free()
+                self._free()
                 self.changed = True
 
     def _find(self):
@@ -197,7 +196,7 @@ class Instance(object):
             self._machine = machines[0]
             self.id = self._machine.id
 
-    def _machine_allocate(self):
+    def _allocate(self):
         networks = list()
         for n in self._networks:
             auto_acquire = True
@@ -233,16 +232,23 @@ class Instance(object):
             user_data=self._userdata,
         )
 
-        self._machine = self._api_client.allocate_machine(r)
+        try:
+            self._machine = self._api_client.allocate_machine(r)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
+
         self.id = self._machine.id
 
-    def _machine_free(self):
+    def _free(self):
         if ANSIBLE_CI_MANAGED_TAG not in self._machine.tags:
             self._module.fail_json(msg="entity does not have label attached: %s" % ANSIBLE_CI_MANAGED_TAG,
                                    project=self._project,
                                    name=self._name)
 
-        self._api_client.free_machine(self.id)
+        try:
+            self._api_client.free_machine(self.id)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
 
 
 def main():

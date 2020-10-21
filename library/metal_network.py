@@ -31,7 +31,6 @@ version_added: "2.8"
 description:
     - Manages network entities in the metal-api.
     - Requires metal_python to be installed.
-    - Cannot update entities.
 
 options:
     name:
@@ -108,7 +107,7 @@ class Instance(object):
         self._module = module
         self.changed = False
         self.prefixes = None
-        self._network = dict()
+        self._network = None
         self.id = None
         self._id = module.params['id']
         self._name = module.params['name']
@@ -130,14 +129,15 @@ class Instance(object):
 
         if self._state == "present":
             if self._network:
+                self._update()
                 return
 
-            self._network_allocate()
+            self._allocate()
             self.changed = True
 
         elif self._state == "absent":
             if self._network:
-                self._network_free()
+                self._free()
                 self.changed = True
 
     def _find(self):
@@ -164,7 +164,24 @@ class Instance(object):
             self.id = self._network.id
             self.prefixes = self._network.prefixes
 
-    def _network_allocate(self):
+    def _update(self):
+        r = models.V1NetworkUpdateRequest(
+            id=self.id,
+        )
+
+        # the name cannot be updated because we use it for identifying the network
+
+        if self._network.description != self._description:
+            self.changed = True
+            r.description = self._description
+
+        if self.changed:
+            try:
+                self._network = self._api_client.update_network(r)
+            except rest.ApiException as e:
+                self._module.fail_json(msg="request to metal-api failed", error=str(e))
+
+    def _allocate(self):
         labels = ANSIBLE_CI_MANAGED_LABEL
 
         r = models.V1NetworkAllocateRequest(description=self._description,
@@ -173,17 +190,25 @@ class Instance(object):
                                             partitionid=self._partition,
                                             projectid=self._project)
 
-        self._network = self._api_client.allocate_network(r)
+        try:
+            self._network = self._api_client.allocate_network(r)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
+
         self.id = self._network.id
         self.prefixes = self._network.prefixes
 
-    def _network_free(self):
+    def _free(self):
         if self._network.labels.get(ANSIBLE_CI_MANAGED_KEY) != ANSIBLE_CI_MANAGED_VALUE:
             self._module.fail_json(msg="entity does not have label attached: %s" % ANSIBLE_CI_MANAGED_LABEL,
                                    project=self._project,
                                    name=self._name)
 
-        self._network = self._api_client.free_network(self.id)
+        try:
+            self._network = self._api_client.free_network(self.id)
+        except rest.ApiException as e:
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
+
         self.id = self._network.id
         self.prefixes = self._network.prefixes
 
