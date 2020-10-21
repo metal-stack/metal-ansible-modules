@@ -20,14 +20,21 @@ ANSIBLE_CI_MANAGED_TAG = ANSIBLE_CI_MANAGED_KEY + "=" + ANSIBLE_CI_MANAGED_VALUE
 
 
 class Configuration:
-    CONFIG_PATH = os.environ.get("METAL_ANSIBLE_INVENTORY_CONFIG",
-                                 os.path.join(os.path.dirname(__file__), "metal_config.yaml"))
+    CONFIG_PATH = os.environ.get("METAL_ANSIBLE_INVENTORY_CONFIG")
 
     def __init__(self):
         self._config = dict()
-        if os.path.isfile(Configuration.CONFIG_PATH):
+
+        if Configuration.CONFIG_PATH is not None:
+            # if configuration path is set explicitly, the file needs to be present and readable
             with open(Configuration.CONFIG_PATH, "r") as f:
                 self._config = yaml.safe_load(f)
+        else:
+            # if configuration path is not provided, the fallback file path is read if present
+            fallback_path = os.path.join(os.path.dirname(__file__), "metal_config.yaml")
+            if os.path.isfile(fallback_path):
+                with open(fallback_path, "r") as f:
+                    self._config = yaml.safe_load(f)
 
     def url(self):
         return self._config.get("url", os.environ.get("METAL_ANSIBLE_INVENTORY_URL", os.environ.get("METALCTL_URL")))
@@ -57,11 +64,13 @@ def run():
         # after installation
         return return_json(dict())
 
+    c = Configuration()
+
     args = parse_arguments()
     if args.host:
         result = host_vars(args.host)
     else:
-        result = host_list()
+        result = host_list(c)
 
     return_json(result)
 
@@ -81,9 +90,7 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def host_list():
-    c = Configuration()
-
+def host_list(c):
     d = Driver(url=c.url(), bearer=c.token(), hmac_key=c.hmac(), hmac_user=c.hmac_user())
 
     request = models.V1MachineFindRequest()
@@ -121,7 +128,7 @@ def host_list():
         name = allocation.name
         hostname = allocation.hostname
         project_id = allocation.project
-        tenant_id = project_map.get(project_id).tenant_id
+        tenant_id = project_map[project_id].tenant_id if project_id in project_map else None
 
         machine_event_log = []
         if machine.events and machine.events.log:
@@ -143,7 +150,7 @@ def host_list():
         # TODO: It is somehow hard to determine the IP of the machine to connect with from the internet...
         external_ip = None
         for network in networks:
-            is_external = True if c.external_network_id() in network.networkid else False
+            is_external = True if c.external_network_id() == network.networkid else False
             if is_external:
                 external_ips = network.ips
                 if len(external_ips) > 0:
@@ -176,6 +183,7 @@ def host_list():
             ansible_host=ansible_host,
             ansible_user="metal",
             metal_allocated_at=str(allocation.created),
+            metal_allocation_succeeded=allocation.succeeded,
             metal_id=machine.id,
             metal_name=name,
             metal_event_log=machine_event_log,
@@ -202,7 +210,7 @@ def host_list():
             _append_to_inventory(inventory, image_id, hostname)
             _append_to_inventory(inventory, rack_id, hostname)
             _append_to_inventory(inventory, "metal", hostname)
-        else:
+        elif is_firewall:
             _append_to_inventory(inventory, "metal-firewalls", hostname)
 
         if hostname in static_machine_ip_mapping:
