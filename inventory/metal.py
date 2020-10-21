@@ -62,7 +62,7 @@ def parse_arguments():
 
 
 def host_list():
-    d = Driver(url=URL, bearer=TOKEN, hmac_key=HMAC)
+    d = Driver(url=URL, bearer=TOKEN, hmac_key=HMAC, hmac_user="Metal-Edit")
 
     request = models.V1MachineFindRequest()
     scope_filters = CONFIG.get("scope_filters", [])
