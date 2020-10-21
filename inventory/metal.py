@@ -147,6 +147,7 @@ def host_list():
 
         machine_meta[hostname] = dict(
             ansible_host=ansible_host,
+            ansible_user="metal",
             metal_id=id,
             metal_name=name,
             metal_hostname=hostname,
