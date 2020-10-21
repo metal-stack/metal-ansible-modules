@@ -242,7 +242,7 @@ class LookupModule(LookupBase):
             else:
                 query[k] = v
 
-        d = Driver(url, token, hmac)
+        d = Driver(url, token, hmac, hmac_user="Metal-Edit")
 
         requester = LookupModule._entities[entity](client=d.client)
 
