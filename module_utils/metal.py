@@ -10,7 +10,7 @@ except ImportError:
 AUTH_SPEC = dict(
     api_url=dict(type='str', required=False),
     api_hmac=dict(type='str', required=False, no_log=True),
-    api_hmac_user=dict(type='str', required=False, default='metal-edit'),
+    api_hmac_user=dict(type='str', required=False, default='Metal-Edit'),
     api_token=dict(type='str', required=False, no_log=True),
 )
 ANSIBLE_CI_MANAGED_KEY = "ci.metal-stack.io/manager"
