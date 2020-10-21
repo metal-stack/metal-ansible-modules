@@ -12,6 +12,7 @@ The modules use [metal-python](https://github.com/metal-stack/metal-python) for 
 | [metal_firewall](library/metal_firewall.py) | Manages metal-stack firewall entities                         | metal-python      |
 | [metal_machine](library/metal_machine.py)   | Manages metal-stack machine entities                         | metal-python      |
 | [metal_network](library/metal_network.py)   | Manages metal-stack network entities                         | metal-python      |
+| [metal_project](library/metal_project.py)   | Manages metal-stack project entities                         | metal-python      |
 
 ## Dynamic Inventories
 
@@ -31,7 +32,7 @@ It's convenient to use ansible-galaxy in order to use this project. For your pro
 
 ```yaml
 - src: https://github.com/metal-stack/metal-ansible-modules.git
-  name: metal-modules
+  name: metal-ansible-modules
   version: master 
 ```
 
@@ -49,5 +50,5 @@ Then reference the roles in your playbooks like this:
   connection: local
   gather_facts: no
   roles:
-    - metal-modules
+    - metal-ansible-modules
 ```
