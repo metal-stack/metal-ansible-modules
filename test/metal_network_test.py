@@ -171,7 +171,7 @@ class TestMetalNetworkModule(MetalModules):
                                         privatesuper=False,
                                         underlay=False,
                                         shared=False,
-                                        labels={"ci.metal-stack.io/manager": "ansible"},
+                                        labels={"ci.metal-stack.io/manager": "ansible", "user": "label"},
                                         usage=models.V1NetworkUsage(
                                             available_ips=10,
                                             available_prefixes=1,
@@ -187,7 +187,10 @@ class TestMetalNetworkModule(MetalModules):
                 name="test2",
                 description="b",
                 partition="fra-equ01",
-                project="a-uuid"
+                project="a-uuid",
+                labels={
+                    "user": "label",
+                },
             )
         )
 
@@ -207,7 +210,7 @@ class TestMetalNetworkModule(MetalModules):
             description="b",
             projectid="a-uuid",
             shared=False,
-            labels={"ci.metal-stack.io/manager": "ansible"},
+            labels={"ci.metal-stack.io/manager": "ansible", "user": "label"},
         ))
 
         expected = dict(

@@ -51,6 +51,10 @@ options:
         description:
             - The project of the network.
         required: true
+    labels:
+        description:
+            - The labels of the network.
+        required: false
     state:
         description:
           - Assert the state of the network.
@@ -116,6 +120,7 @@ class Instance(object):
         self._description = module.params.get('description')
         self._state = module.params.get('state')
         self._shared = module.params.get('shared')
+        self._labels = module.params.get('labels')
         self._driver = init_driver_for_module(self._module)
         self._api_client = NetworkApi(api_client=self._driver.client)
 
@@ -180,6 +185,12 @@ class Instance(object):
             self.changed = True
             r.shared = self._shared
 
+        labels = self._labels.copy()
+        labels.update(ANSIBLE_CI_MANAGED_LABEL)
+        if self._network.labels != labels:
+            self.changed = True
+            r.labels = labels
+
         if self.changed:
             try:
                 self._network = self._api_client.update_network(r)
@@ -187,7 +198,8 @@ class Instance(object):
                 self._module.fail_json(msg="request to metal-api failed", error=str(e))
 
     def _allocate(self):
-        labels = ANSIBLE_CI_MANAGED_LABEL
+        labels = self._labels.copy()
+        labels.update(ANSIBLE_CI_MANAGED_LABEL)
 
         r = models.V1NetworkAllocateRequest(description=self._description,
                                             name=self._name,
@@ -228,6 +240,7 @@ def main():
         description=dict(type='str', required=False),
         partition=dict(type='str', required=False),
         shared=dict(type='bool', default=False),
+        labels=dict(type='dict', required=False, default=dict()),
         state=dict(type='str', choices=['present', 'absent'], default='present'),
     ))
     module = AnsibleModule(
