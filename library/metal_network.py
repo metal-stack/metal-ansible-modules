@@ -185,11 +185,13 @@ class Instance(object):
             self.changed = True
             r.shared = self._shared
 
-        labels = self._labels.copy()
-        labels.update(ANSIBLE_CI_MANAGED_LABEL)
-        if self._network.labels != labels:
-            self.changed = True
-            r.labels = labels
+        # this is not possible through edit token by now, therefore disabling
+        # https://github.com/metal-stack/metal-api/issues/150
+        # labels = self._labels.copy()
+        # labels.update(ANSIBLE_CI_MANAGED_LABEL)
+        # if self._network.labels != labels:
+        #     self.changed = True
+        #     r.labels = labels
 
         if self.changed:
             try:
