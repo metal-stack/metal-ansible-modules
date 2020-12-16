@@ -98,7 +98,7 @@ EXAMPLES = '''
 '''
 
 RETURN = '''
-id:
+ip:
   description:
     - ip address
   returned: always
