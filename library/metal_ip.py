@@ -162,6 +162,8 @@ class Instance(object):
         r = models.V1IPUpdateRequest(
             ipaddress=self.ip_address,
             type=self._ip.type,
+            # TODO: Remove after https://github.com/metal-stack/metal-api/pull/161
+            allocationuuid="",
         )
 
         if self._ip.description != self._description:
