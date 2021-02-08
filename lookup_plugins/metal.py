@@ -223,6 +223,7 @@ class LookupModule(LookupBase):
 
         url = kwargs.pop("api_url", variables.get("metal_api_url", os.environ.get("METALCTL_URL")))
         hmac = kwargs.pop("api_hmac", variables.get("metal_api_hmac", os.environ.get("METALCTL_HMAC")))
+        hmac_user = kwargs.pop("api_hmac_user", variables.get("metal_api_hmac_user", "Metal-Edit"))
         token = kwargs.pop("api_token", variables.get("metal_api_token", os.environ.get("METALCTL_APITOKEN")))
 
         entity = kwargs.pop("entity", terms[1] if len(terms) == 2 else None)
@@ -242,7 +243,7 @@ class LookupModule(LookupBase):
             else:
                 query[k] = v
 
-        d = Driver(url, token, hmac, hmac_user="Metal-Edit")
+        d = Driver(url, token, hmac, hmac_user=hmac_user)
 
         requester = LookupModule._entities[entity](client=d.client)
 
