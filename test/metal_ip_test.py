@@ -23,6 +23,7 @@ class TestMetalIPModule(MetalModules):
            side_effect=[
                models.V1IPResponse(
                    ipaddress="212.34.89.212",
+                   allocationuuid="a-unique-id",
                    networkid="internet",
                    projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
                    tags=["ci.metal-stack.io/manager=ansible"])
@@ -64,6 +65,7 @@ class TestMetalIPModule(MetalModules):
            side_effect=[
                models.V1IPResponse(
                    ipaddress="212.34.89.212",
+                   allocationuuid="a-unique-id",
                    name="shoot-ip-1",
                    description="b",
                    networkid="internet",
@@ -100,6 +102,7 @@ class TestMetalIPModule(MetalModules):
            side_effect=[
                models.V1IPResponse(
                    ipaddress="212.34.89.212",
+                   allocationuuid="a-unique-id",
                    name="shoot-ip-1",
                    description="b",
                    networkid="internet",
@@ -111,6 +114,7 @@ class TestMetalIPModule(MetalModules):
            side_effect=[
                models.V1IPResponse(
                    ipaddress="212.34.89.212",
+                   allocationuuid="a-unique-id",
                    name="shoot-ip-1",
                    description="b",
                    networkid="internet",
@@ -158,6 +162,7 @@ class TestMetalIPModule(MetalModules):
            side_effect=[
                models.V1IPResponse(
                    ipaddress="212.34.89.212",
+                   allocationuuid="a-unique-id",
                    networkid="internet",
                    projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
                    tags=["ci.metal-stack.io/manager=ansible"])
@@ -202,6 +207,7 @@ class TestMetalIPModule(MetalModules):
            side_effect=[
                models.V1IPResponse(
                    ipaddress="212.34.89.212",
+                   allocationuuid="a-unique-id",
                    networkid="internet",
                    projectid="2ada3f21-67fc-4432-a9ba-89b670245456",
                    tags=["ci.metal-stack.io/manager=ansible"])
@@ -210,6 +216,7 @@ class TestMetalIPModule(MetalModules):
            side_effect=[
                models.V1IPResponse(
                    ipaddress="212.34.89.212",
+                   allocationuuid="a-unique-id",
                    networkid="internet",
                    projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
                    tags=["ci.metal-stack.io/manager=ansible"])
