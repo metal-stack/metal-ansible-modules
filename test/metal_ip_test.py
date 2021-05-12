@@ -19,6 +19,8 @@ class TestMetalIPModule(MetalModules):
         import metal_ip
         self.module = metal_ip
 
+    @patch("metal_python.api.ip_api.IpApi.find_i_ps",
+           side_effect=[[]])
     @patch("metal_python.api.ip_api.IpApi.allocate_ip",
            side_effect=[
                models.V1IPResponse(
@@ -28,7 +30,7 @@ class TestMetalIPModule(MetalModules):
                    projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
                    tags=["ci.metal-stack.io/manager=ansible"])
            ])
-    def test_ip_present_random_ip(self, mock):
+    def test_ip_present_random_ip(self, mock, find_mock):
         set_module_args(
             dict(
                 api_url="http://somewhere",
@@ -43,6 +45,13 @@ class TestMetalIPModule(MetalModules):
         with self.assertRaises(AnsibleExitJson) as result:
             self.module.main()
 
+        find_mock.assert_called()
+        find_mock.assert_called_with(
+            models.V1IPFindRequest(
+                name="test",
+                projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
+            )
+        )
         mock.assert_called()
         mock.assert_called_with(
             models.V1IPAllocateRequest(
@@ -98,6 +107,47 @@ class TestMetalIPModule(MetalModules):
         )
         self.assertDictEqual(result.exception.module_results, expected)
 
+    @patch("metal_python.api.ip_api.IpApi.find_i_ps",
+           side_effect=[
+               [
+                   models.V1IPResponse(
+                       ipaddress="212.34.89.212",
+                       allocationuuid="a-unique-id",
+                       name="shoot-ip-1",
+                       description="b",
+                       networkid="internet",
+                       projectid="2ada3f21-67fc-4432-a9ba-89b670245456",
+                       type="ephemeral",
+                       tags=["ci.metal-stack.io/manager=ansible"])
+               ],
+           ])
+    def test_ip_present_already_exists_by_name_and_project(self, mocks):
+        set_module_args(
+            dict(
+                api_url="http://somewhere",
+                api_hmac="hmac",
+                name="shoot-ip-1",
+                description="b",
+                network="internet",
+                project="2ada3f21-67fc-4432-a9ba-89b670245456"
+            )
+        )
+
+        with self.assertRaises(AnsibleExitJson) as result:
+            self.module.main()
+
+        mocks.assert_called()
+        mocks.assert_called_with(models.V1IPFindRequest(
+            name="shoot-ip-1",
+            projectid="2ada3f21-67fc-4432-a9ba-89b670245456",
+        ))
+
+        expected = dict(
+            ip="212.34.89.212",
+            changed=False,
+        )
+        self.assertDictEqual(result.exception.module_results, expected)
+
     @patch("metal_python.api.ip_api.IpApi.find_ip",
            side_effect=[
                models.V1IPResponse(
@@ -108,7 +158,8 @@ class TestMetalIPModule(MetalModules):
                    networkid="internet",
                    projectid="2ada3f21-67fc-4432-a9ba-89b670245456",
                    type="ephemeral",
-                   tags=["ci.metal-stack.io/manager=ansible"])
+                   tags=["ci.metal-stack.io/manager=ansible",
+                         "cluster.metal-stack.io/id/namespace/service=someuid/ns/svc"])
            ])
     @patch("metal_python.api.ip_api.IpApi.update_ip",
            side_effect=[
@@ -147,7 +198,9 @@ class TestMetalIPModule(MetalModules):
             models.V1IPUpdateRequest(
                 ipaddress="212.34.89.212",
                 type="ephemeral",
-                tags=["a-new-tag", "ci.metal-stack.io/manager=ansible"],
+                tags=["a-new-tag",
+                      "cluster.metal-stack.io/id/namespace/service=someuid/ns/svc",
+                      "ci.metal-stack.io/manager=ansible"],
             )
         )
 
@@ -253,5 +306,5 @@ class TestMetalIPModule(MetalModules):
             )
         )
 
-        with self.assertRaisesRegex(AnsibleFailJson, "ip is a required argument when state is absent"):
+        with self.assertRaisesRegex(AnsibleFailJson, "either ip or name must be given"):
             self.module.main()
