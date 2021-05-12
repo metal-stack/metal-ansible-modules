@@ -203,7 +203,7 @@ class Instance(object):
                 self._tags.append(tag)
 
         self._tags.append(ANSIBLE_CI_MANAGED_TAG)
-        if self._ip.tags != self._tags:
+        if sorted(self._ip.tags) != sorted(self._tags):
             self.changed = True
             r.tags = self._tags
 
