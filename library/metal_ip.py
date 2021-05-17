@@ -33,7 +33,10 @@ description:
 options:
     name:
         description:
-            - The description of the ip.
+            - >-
+              The name of the ip, which must be unique within a project 
+              (in case ip is not provided).
+              Otherwise, the module cannot figure out if the ip was already created or not.
         required: false
     description:
         description:
@@ -126,6 +129,9 @@ class Instance(object):
         self._driver = init_driver_for_module(self._module)
         self._api_client = IpApi(api_client=self._driver.client)
 
+        if self.ip_address is None and (self._project is None or self._name is None):
+            module.fail_json(msg="either ip or name must be given")
+
     def run(self):
         if self._module.check_mode:
             return
@@ -148,15 +154,33 @@ class Instance(object):
                 self.changed = True
 
     def _find(self):
-        if not self.ip_address:
+        if self.ip_address:
+            try:
+                self._ip = self._api_client.find_ip(self.ip_address)
+            except rest.ApiException as e:
+                if e.status != 404:
+                    self._module.fail_json(msg="request to metal-api failed", error=str(e))
             return
 
+        r = models.V1IPFindRequest(
+            name=self._name,
+            projectid=self._project,
+        )
         try:
-            self._ip = self._api_client.find_ip(self.ip_address)
+            ips = self._api_client.find_i_ps(r)
         except rest.ApiException as e:
-            if e.status != 404:
-                self._module.fail_json(msg="request to metal-api failed", error=str(e))
-                return
+            self._module.fail_json(msg="request to metal-api failed", error=str(e))
+            return
+
+        if len(ips) > 1:
+            self._module.fail_json(
+                msg="multiple ips of name '%s' exist in project '%s'. "
+                    "module idempotence depends on unique names within a project, "
+                    "please ensure unique names or ip in params.",
+                project=self._project, name=self._name)
+        elif len(ips) == 1:
+            self._ip = ips[0]
+            self.ip_address = self._ip.ipaddress
 
     def _update(self):
         r = models.V1IPUpdateRequest(
@@ -172,8 +196,14 @@ class Instance(object):
             self.changed = True
             r.name = self._name
 
+        for tag in self._ip.tags:
+            # we need to maintain tags from the metal-ccm that are required for inserting an ip address
+            # into the metalLB ip pool
+            if tag.startswith("cluster.metal-stack.io/id/namespace/service"):
+                self._tags.append(tag)
+
         self._tags.append(ANSIBLE_CI_MANAGED_TAG)
-        if self._ip.tags != self._tags:
+        if sorted(self._ip.tags) != sorted(self._tags):
             self.changed = True
             r.tags = self._tags
 
