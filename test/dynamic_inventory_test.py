@@ -78,7 +78,6 @@ class TestMetalDynamicInventory(unittest.TestCase):
                    ),
                    allocation=models.V1MachineAllocation(
                        created=test_timestamp,
-                       console_password="abc",
                        hostname="m-hostname",
                        name="m-name",
                        description="my machine",
@@ -153,7 +152,6 @@ class TestMetalDynamicInventory(unittest.TestCase):
                         'ansible_user': 'metal',
                         'metal_allocated_at': str(test_timestamp),
                         'metal_allocation_succeeded': True,
-                        'metal_console_password': 'abc',
                         'metal_description': 'my machine',
                         'metal_event_log': [
                             {
