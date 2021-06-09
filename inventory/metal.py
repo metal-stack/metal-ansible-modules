@@ -124,7 +124,6 @@ def host_list(c):
 
         description = allocation.description
         networks = allocation.networks
-        console_password = allocation.console_password
         name = allocation.name
         hostname = allocation.hostname
         project_id = allocation.project
@@ -195,7 +194,6 @@ def host_list(c):
             metal_size=size_id,
             metal_image=image_id,
             metal_image_expiration=image_expiration_date,
-            metal_console_password=console_password,
             metal_tenant=tenant_id,
             metal_is_firewall=is_firewall,
             metal_is_machine=is_machine,
