@@ -1,6 +1,6 @@
 ---
 # works for mini-lab
-url: http://api.0.0.0.0.xip.io:8080/metal
+url: http://api.0.0.0.0.nip.io:8080/metal
 hmac: metal-admin
 token:
 scope_filters:
