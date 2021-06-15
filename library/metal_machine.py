@@ -38,7 +38,7 @@ options:
     name:
         description:
             - >-
-              The name of the machine, which must be unique within a project and partition 
+              The name of the machine, which must be unique within a project and partition
               (in case id is not provided).
               Otherwise, the module cannot figure out if the machine was already created or not.
         required: false
@@ -65,20 +65,28 @@ options:
     size:
         description:
             - The size of the machine.
-        required: false    
+        required: false
     networks:
         description:
             - The networks of the machine.
             - IP acquisition mode can be specified by adding :auto or :noauto to the network name.
-        required: false   
+        required: false
     ips:
         description:
             - The ips of the machine.
-        required: false 
+        required: false
     tags:
         description:
             - The tags of the machine.
-        required: false              
+        required: false
+    userdata:
+        description:
+            - The userdata to inject into the machine provisioning sequence.
+        required: false
+    filesystemlayout:
+        description:
+            - The file system layout to use for the machine allocation.
+        required: false
     state:
         description:
           - Assert the state of the machine.
@@ -100,7 +108,7 @@ EXAMPLES = '''
     name: my-machine
     description: "my machine"
     hostname: my-machine
-    networks: 
+    networks:
     - internet
     - 5d30b3af-cb2a-4aa3-84e8-52dbf94a326b
     size: c1-xlarge-x86
@@ -144,6 +152,7 @@ class Instance(object):
         self._tags = module.params.get('tags') if module.params.get('tags') else []
         self._ssh_pub_keys = module.params.get('ssh_pub_keys')
         self._userdata = module.params.get('userdata')
+        self._file_system_layout = module.params.get('filesystemlayout')
         self._state = module.params.get('state')
         self._driver = init_driver_for_module(self._module)
         self._api_client = MachineApi(api_client=self._driver.client)
@@ -230,6 +239,7 @@ class Instance(object):
             tags=self._tags,
             ssh_pub_keys=self._ssh_pub_keys,
             user_data=self._userdata,
+            filesystemlayoutid=self._file_system_layout,
         )
 
         try:
@@ -267,6 +277,7 @@ def main():
         tags=dict(type='list', default=list(), required=False),
         ssh_pub_keys=dict(type='list', default=list(), required=False),
         userdata=dict(type='str', required=False),
+        filesystemlayout=dict(type='str', required=False),
         state=dict(type='str', choices=['present', 'absent'], default='present'),
     ))
     module = AnsibleModule(
