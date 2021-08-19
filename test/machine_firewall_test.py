@@ -61,10 +61,12 @@ class TestMetalFirewallModule(MetalModules):
                        tags=["ci.metal-stack.io/manager=ansible"],
                        allocation=models.V1MachineAllocation(
                            created="",
+                           creator="",
                            hostname="",
                            name="",
                            project="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
                            reinstall=False,
+                           role="firewall",
                            ssh_pub_keys=[],
                            succeeded=True,
                            networks=[
@@ -134,10 +136,12 @@ class TestMetalFirewallModule(MetalModules):
                    tags=["ci.metal-stack.io/manager=ansible"],
                    allocation=models.V1MachineAllocation(
                        created="",
+                       creator="",
                        hostname="",
                        name="",
                        project="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
                        reinstall=False,
+                       role="firewall",
                        ssh_pub_keys=[],
                        succeeded=True,
                        networks=[
@@ -220,10 +224,12 @@ class TestMetalFirewallModule(MetalModules):
                        tags=["ci.metal-stack.io/manager=ansible"],
                        allocation=models.V1MachineAllocation(
                            created="",
+                           creator="",
                            hostname="",
                            name="",
                            project="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
                            reinstall=False,
+                           role="firewall",
                            ssh_pub_keys=[],
                            succeeded=True,
                            networks=[
@@ -266,10 +272,12 @@ class TestMetalFirewallModule(MetalModules):
                    tags=["ci.metal-stack.io/manager=ansible"],
                    allocation=models.V1MachineAllocation(
                        created="",
+                       creator="",
                        hostname="",
                        name="",
                        project="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
                        reinstall=False,
+                       role="firewall",
                        ssh_pub_keys=[],
                        succeeded=True,
                        networks=[

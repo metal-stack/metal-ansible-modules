@@ -78,11 +78,13 @@ class TestMetalDynamicInventory(unittest.TestCase):
                    ),
                    allocation=models.V1MachineAllocation(
                        created=test_timestamp,
+                       creator="metal-stack",
                        hostname="m-hostname",
                        name="m-name",
                        description="my machine",
                        project="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
                        reinstall=False,
+                       role="machine",
                        ssh_pub_keys=[],
                        succeeded=True,
                        image=models.V1ImageResponse(
@@ -152,6 +154,7 @@ class TestMetalDynamicInventory(unittest.TestCase):
                         'ansible_user': 'metal',
                         'metal_allocated_at': str(test_timestamp),
                         'metal_allocation_succeeded': True,
+                        'metal_creator': 'metal-stack',
                         'metal_description': 'my machine',
                         'metal_event_log': [
                             {

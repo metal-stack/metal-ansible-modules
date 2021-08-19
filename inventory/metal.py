@@ -177,6 +177,7 @@ def host_list(c):
             ansible_user="metal",
             metal_allocated_at=str(allocation.created),
             metal_allocation_succeeded=allocation.succeeded,
+            metal_creator=allocation.creator,
             metal_id=machine.id,
             metal_name=name,
             metal_event_log=machine_event_log,
