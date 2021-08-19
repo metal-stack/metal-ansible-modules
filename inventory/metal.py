@@ -162,8 +162,8 @@ def host_list(c):
             # if there is no name, no host name and no external ip... we skip this host
             continue
 
-        is_machine = False
-        is_firewall = False
+        is_machine = allocation.role == "machine"
+        is_firewall = allocation.role == "firewall"
 
         image = allocation.image
         image_id = None
@@ -171,18 +171,13 @@ def host_list(c):
         if image:
             image_id = image.id
             image_expiration_date = str(image.expiration_date)
-            # TODO: Can be replaced when we have https://github.com/metal-stack/metal-api/issues/24
-            if "firewall" in image.features:
-                if len(networks) > 1:
-                    is_firewall = True
-            if "machine" in image.features:
-                is_machine = True
 
         machine_meta[hostname] = dict(
             ansible_host=ansible_host,
             ansible_user="metal",
             metal_allocated_at=str(allocation.created),
             metal_allocation_succeeded=allocation.succeeded,
+            metal_creator=allocation.creator,
             metal_id=machine.id,
             metal_name=name,
             metal_event_log=machine_event_log,
