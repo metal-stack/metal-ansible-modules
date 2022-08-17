@@ -26,7 +26,7 @@ DOCUMENTATION = """
       - Requires Python 3.
     options:
       request:
-        description: 
+        description:
         - The type of the request (get or search).
         - "'get' returns a single result and needs the primary key to be added as the query term"
         - "'search' returns a list of results filtered by the given query params"
@@ -35,13 +35,13 @@ DOCUMENTATION = """
         description: the entity to lookup
         required: True
       _terms:
-         description: 
+         description:
          - First term can be set to 'get' or 'search', second one to the desired entity
          - If set, request and entity can be omitted
          required: False
       query:
-        description: 
-          - Arbitrary query parameters passed on to the get request or request search body 
+        description:
+          - Arbitrary query parameters passed on to the get request or request search body
           - It can be that certain query parameters overlap with the Ansible lookup plugin constructor (e.g. 'name').
           - If this happens, you can prefix your parameter with an underscore, which will be removed before the request.
         required: False
@@ -221,7 +221,7 @@ class LookupModule(LookupBase):
         if not METAL_PYTHON_AVAILABLE:
             raise RuntimeError("metal_python must be installed")
 
-        url = kwargs.pop("api_url", variables.get("metal_api_url", os.environ.get("METALCTL_URL")))
+        url = kwargs.pop("api_url", variables.get("metal_api_url", os.environ.get("METALCTL_API_URL")))
         hmac = kwargs.pop("api_hmac", variables.get("metal_api_hmac", os.environ.get("METALCTL_HMAC")))
         hmac_user = kwargs.pop("api_hmac_user", variables.get("metal_api_hmac_user", "Metal-Edit"))
         token = kwargs.pop("api_token", variables.get("metal_api_token", os.environ.get("METALCTL_APITOKEN")))
