@@ -47,6 +47,8 @@ class TestMetalDynamicInventory(unittest.TestCase):
                        version="",
                    ),
                    events=models.V1MachineRecentProvisioningEvents(
+                       crash_loop=False,
+                       failed_machine_reclaim=False,
                        incomplete_provisioning_cycles="0",
                        last_event_time=test_timestamp,
                        log=[
