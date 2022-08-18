@@ -37,7 +37,7 @@ class Configuration:
                     self._config = yaml.safe_load(f)
 
     def url(self):
-        return self._config.get("url", os.environ.get("METAL_ANSIBLE_INVENTORY_URL", os.environ.get("METALCTL_URL")))
+        return self._config.get("url", os.environ.get("METAL_ANSIBLE_INVENTORY_URL", os.environ.get("METALCTL_API_URL")))
 
     def token(self):
         return self._config.get("token", os.environ.get("METAL_ANSIBLE_INVENTORY_TOKEN"))

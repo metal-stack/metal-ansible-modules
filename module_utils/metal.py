@@ -23,7 +23,7 @@ def init_driver_for_module(module):
     if not METAL_PYTHON_AVAILABLE:
         module.fail_json(msg="metal_python must be installed")
 
-    url = module.params.get("api_url", os.environ.get("METALCTL_URL"))
+    url = module.params.get("api_url", os.environ.get("METALCTL_API_URL"))
     hmac = module.params.get("api_hmac", os.environ.get("METALCTL_HMAC"))
     token = module.params.get("api_token", os.environ.get("METALCTL_APITOKEN"))
     hmac_user = module.params.get("api_hmac_user")
