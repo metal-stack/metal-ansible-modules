@@ -60,6 +60,7 @@ class TestMetalMachineModule(MetalModules):
                        state="",
                        tags=["ci.metal-stack.io/manager=ansible"],
                        allocation=models.V1MachineAllocation(
+                           allocationuuid="d87250e5-ff2f-49fd-a8fe-9eee23085511",
                            created="",
                            creator="",
                            hostname="",
@@ -135,6 +136,7 @@ class TestMetalMachineModule(MetalModules):
                    state="",
                    tags=["ci.metal-stack.io/manager=ansible"],
                    allocation=models.V1MachineAllocation(
+                       allocationuuid="d87250e5-ff2f-49fd-a8fe-9eee23085511",
                        created="",
                        creator="",
                        hostname="",
@@ -225,6 +227,7 @@ class TestMetalMachineModule(MetalModules):
                    state="",
                    tags=["ci.metal-stack.io/manager=ansible"],
                    allocation=models.V1MachineAllocation(
+                       allocationuuid="d87250e5-ff2f-49fd-a8fe-9eee23085511",
                        created="",
                        creator="",
                        hostname="",
@@ -314,6 +317,7 @@ class TestMetalMachineModule(MetalModules):
                        state="",
                        tags=["ci.metal-stack.io/manager=ansible"],
                        allocation=models.V1MachineAllocation(
+                           allocationuuid="d87250e5-ff2f-49fd-a8fe-9eee23085511",
                            created="",
                            creator="",
                            hostname="",
@@ -362,6 +366,7 @@ class TestMetalMachineModule(MetalModules):
                    state="",
                    tags=["ci.metal-stack.io/manager=ansible"],
                    allocation=models.V1MachineAllocation(
+                       allocationuuid="d87250e5-ff2f-49fd-a8fe-9eee23085511",
                        created="",
                        creator="",
                        hostname="",
