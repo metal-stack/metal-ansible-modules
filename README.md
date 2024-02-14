@@ -6,13 +6,13 @@ The modules use [metal-python](https://github.com/metal-stack/metal-python) for 
 
 ## Modules
 
-| Module Name                                 | Description                                                  | Requirements      |
-| ------------------------------------------- | ------------------------------------------------------------ | ----------------- |
-| [metal_ip](library/metal_ip.py)             | Manages metal-stack IP entities                              | metal-python      |
-| [metal_firewall](library/metal_firewall.py) | Manages metal-stack firewall entities                         | metal-python      |
-| [metal_machine](library/metal_machine.py)   | Manages metal-stack machine entities                         | metal-python      |
-| [metal_network](library/metal_network.py)   | Manages metal-stack network entities                         | metal-python      |
-| [metal_project](library/metal_project.py)   | Manages metal-stack project entities                         | metal-python      |
+| Module Name                                 | Description                           | Requirements |
+| ------------------------------------------- | ------------------------------------- | ------------ |
+| [metal_ip](library/metal_ip.py)             | Manages metal-stack IP entities       | metal-python |
+| [metal_firewall](library/metal_firewall.py) | Manages metal-stack firewall entities | metal-python |
+| [metal_machine](library/metal_machine.py)   | Manages metal-stack machine entities  | metal-python |
+| [metal_network](library/metal_network.py)   | Manages metal-stack network entities  | metal-python |
+| [metal_project](library/metal_project.py)   | Manages metal-stack project entities  | metal-python |
 
 ## Dynamic Inventories
 
@@ -33,7 +33,7 @@ It's convenient to use ansible-galaxy in order to use this project. For your pro
 ```yaml
 - src: https://github.com/metal-stack/metal-ansible-modules.git
   name: metal-ansible-modules
-  version: master 
+  version: master
 ```
 
 You can then download the roles with the following command:

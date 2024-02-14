@@ -49,7 +49,6 @@ class TestMetalDynamicInventory(unittest.TestCase):
                    events=models.V1MachineRecentProvisioningEvents(
                        crash_loop=False,
                        failed_machine_reclaim=False,
-                       incomplete_provisioning_cycles="0",
                        last_event_time=test_timestamp,
                        log=[
                            models.V1MachineProvisioningEvent(
@@ -73,12 +72,15 @@ class TestMetalDynamicInventory(unittest.TestCase):
                    size=models.V1SizeResponse(
                        id="c1-xlarge-x86",
                        constraints=[],
+                       labels=[],
                    ),
                    partition=models.V1PartitionResponse(
                        id="partition-a",
                        bootconfig=models.V1PartitionBootConfiguration(),
+                       labels=[],
                    ),
                    allocation=models.V1MachineAllocation(
+                       allocationuuid="d87250e5-ff2f-49fd-a8fe-9eee23085511",
                        created=test_timestamp,
                        creator="metal-stack",
                        hostname="m-hostname",

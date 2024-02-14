@@ -6,8 +6,8 @@
   gather_facts: no
   vars:
     metal_stack_release_version: develop
-    metal_api_url: http://api.0.0.0.0.nip.io:8080/metal
-    metal_api_hmac: metal-admin
+    metal_api_url: http://api.172.17.0.1.nip.io:8080/metal
+    metal_api_edit_key: metal-edit
     setup_yaml:
       - url: https://raw.githubusercontent.com/metal-stack/releases/{{ metal_stack_release_version }}/release.yaml
         meta_var: metal_stack_release
@@ -19,16 +19,16 @@
     - name: Allocate network
       metal_network:
         api_url: "{{ metal_api_url }}"
-        api_hmac: "{{ metal_api_hmac }}"
+        api_hmac: "{{ metal_api_edit_key }}"
         name: test
         description: test network
-        partition: vagrant
+        partition: mini-lab
         project: 00000000-0000-0000-0000-000000000000
       register: network
 
     - name: Lookup project network
       set_fact:
-        project_networks: "{{ lookup('metal', 'search', 'network', projectid='00000000-0000-0000-0000-000000000000') }}"
+        project_networks: "{{ lookup('metal', 'search', 'network', api_hmac=metal_api_edit_key, projectid='00000000-0000-0000-0000-000000000000') }}"
 
     - name: Assert network
       assert:
@@ -38,8 +38,8 @@
           - project_networks | length == 1
           - project_networks[0].name == "test"
           - project_networks[0].description == "test network"
-          - project_networks[0].partitionid == "vagrant"
-          - project_networks[0].parentnetworkid == "tenant-super-network-vagrant"
+          - project_networks[0].partitionid == "mini-lab"
+          - project_networks[0].parentnetworkid == "tenant-super-network-mini-lab"
           - project_networks[0].projectid == "00000000-0000-0000-0000-000000000000"
           - project_networks[0].nat == False
           - project_networks[0].underlay == False
@@ -49,7 +49,7 @@
     - name: Allocate IP
       metal_ip:
         api_url: "{{ metal_api_url }}"
-        api_hmac: "{{ metal_api_hmac }}"
+        api_hmac: "{{ metal_api_edit_key }}"
         network: "{{ network.id }}"
         name: test
         description: test ip
@@ -58,7 +58,7 @@
 
     - name: Lookup IP
       set_fact:
-        looked_up_ip: "{{ lookup('metal', 'get', 'ip', id=ip.ip) }}"
+        looked_up_ip: "{{ lookup('metal', 'get', 'ip', api_hmac=metal_api_edit_key, id=ip.ip) }}"
 
     - name: Assert IP
       assert:
@@ -75,13 +75,13 @@
     - name: Release IP
       metal_ip:
         api_url: "{{ metal_api_url }}"
-        api_hmac: "{{ metal_api_hmac }}"
+        api_hmac: "{{ metal_api_edit_key }}"
         ip: "{{ ip.ip }}"
         state: absent
 
     - name: Release network
       metal_network:
         api_url: "{{ metal_api_url }}"
-        api_hmac: "{{ metal_api_hmac }}"
+        api_hmac: "{{ metal_api_edit_key }}"
         id: "{{ network.id }}"
         state: absent
