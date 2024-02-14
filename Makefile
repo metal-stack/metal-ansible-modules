@@ -17,4 +17,4 @@ run-test-example:
 		-w /metal-modules \
 		--network host \
 		ghcr.io/metal-stack/metal-deployment-base:$(METAL_DEPLOYMENT_BASE_VERSION) /bin/bash -ce \
-		  "ansible-galaxy install --ignore-errors -r example-requirements.yaml && DEBUG=1 ansible-playbook example.yaml -vvv"
+		  "ansible-galaxy install --ignore-errors -r example-requirements.yaml && ansible-playbook example.yaml -v"
