@@ -146,6 +146,25 @@ class TestMetalFirewallModule(MetalModules):
                        role="firewall",
                        ssh_pub_keys=[],
                        succeeded=True,
+                       firewall_rules=models.V1FirewallRules(
+                        egress=[
+                            models.V1FirewallEgressRule(
+                                comment="reach internet",
+                                ports=[443],
+                                protocol="tcp",
+                                to=["0.0.0.0/0"],
+                            ),
+                        ],
+                        ingress=[
+                            models.V1FirewallIngressRule(
+                                comment="ssh",
+                                ports=[22],
+                                protocol="tcp",
+                                _from=["0.0.0.0/0"],
+                                to=[],
+                            )
+                        ],
+                       ),
                        networks=[
                            models.V1MachineNetwork(
                                asn="",
@@ -173,6 +192,24 @@ class TestMetalFirewallModule(MetalModules):
                 partition="partition-id",
                 size="c1",
                 image="ubuntu",
+                rules=dict(
+                    ingress=[
+                        dict(
+                            comment="ssh",
+                            ports=[22],
+                            source=["0.0.0.0/0"],
+                            protocol="tcp",
+                        ),
+                    ],
+                    egress=[
+                        dict(
+                            comment="reach internet",
+                            ports=[443],
+                            protocol="tcp",
+                            to=["0.0.0.0/0"],
+                        ),
+                    ],
+                )
             )
         )
 
@@ -194,6 +231,25 @@ class TestMetalFirewallModule(MetalModules):
             networks=[],
             ips=[],
             ssh_pub_keys=[],
+            firewall_rules=models.V1FirewallRules(
+                egress=[
+                    models.V1FirewallEgressRule(
+                        comment="reach internet",
+                        ports=[443],
+                        protocol="tcp",
+                        to=["0.0.0.0/0"],
+                    ),
+                ],
+                ingress=[
+                    models.V1FirewallIngressRule(
+                        comment="ssh",
+                        ports=[22],
+                        protocol="tcp",
+                        _from=["0.0.0.0/0"],
+                        to=[],
+                    )
+                ]
+            ),
             tags=["ci.metal-stack.io/manager=ansible"],
         ))
 
