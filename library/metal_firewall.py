@@ -220,8 +220,6 @@ class Instance(object):
 
         self._tags.append(ANSIBLE_CI_MANAGED_TAG)
 
-
-
         r = models.V1FirewallCreateRequest(
             uuid=self.id if self.id else None,
             name=self._name,
