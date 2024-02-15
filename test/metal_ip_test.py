@@ -24,6 +24,7 @@ class TestMetalIPModule(MetalModules):
     @patch("metal_python.api.ip_api.IpApi.allocate_ip",
            side_effect=[
                models.V1IPResponse(
+                   type="ephemeral",
                    ipaddress="212.34.89.212",
                    allocationuuid="a-unique-id",
                    networkid="internet",
@@ -214,6 +215,7 @@ class TestMetalIPModule(MetalModules):
     @patch("metal_python.api.ip_api.IpApi.allocate_ip",
            side_effect=[
                models.V1IPResponse(
+                   type="static",
                    ipaddress="212.34.89.212",
                    allocationuuid="a-unique-id",
                    networkid="internet",
@@ -259,6 +261,7 @@ class TestMetalIPModule(MetalModules):
     @patch("metal_python.api.ip_api.IpApi.find_ip",
            side_effect=[
                models.V1IPResponse(
+                   type="static",
                    ipaddress="212.34.89.212",
                    allocationuuid="a-unique-id",
                    networkid="internet",
@@ -268,6 +271,7 @@ class TestMetalIPModule(MetalModules):
     @patch("metal_python.api.ip_api.IpApi.free_ip",
            side_effect=[
                models.V1IPResponse(
+                   type="static",
                    ipaddress="212.34.89.212",
                    allocationuuid="a-unique-id",
                    networkid="internet",

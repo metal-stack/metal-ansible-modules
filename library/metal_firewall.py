@@ -38,7 +38,7 @@ options:
     name:
         description:
             - >-
-              The name of the firewall, which must be unique within a project and partition 
+              The name of the firewall, which must be unique within a project and partition
               (in case id is not provided).
               Otherwise, the module cannot figure out if the firewall was already created or not.
         required: false
@@ -65,19 +65,23 @@ options:
     size:
         description:
             - The size of the firewall.
-        required: false    
-    networks: 
+        required: false
+    networks:
         description:
             - The networks of the firewall.
-        required: false    
+        required: false
     ips:
         description:
             - The ips of the firewall.
-        required: false    
+        required: false
+    rules:
+        description:
+            - Firewall rules to be deployed to the firewall during provisioning. By default the firewall drops all traffic from the node's private network.
+        required: false
     tags:
         description:
             - The tags of the firewall.
-        required: false              
+        required: false
     state:
         description:
           - Assert the state of the firewall.
@@ -99,12 +103,24 @@ EXAMPLES = '''
     name: my-firewall
     description: "my firewall"
     hostname: my-firewall
-    networks: 
+    networks:
     - internet
     - 5d30b3af-cb2a-4aa3-84e8-52dbf94a326b
     size: c1-xlarge-x86
     partition: fra-equ01
     project: 9ec6882a-cd94-42a7-b667-ffaed43557c7
+    rules:
+      ingress:
+        - comment: ssh
+          source:
+            - 192.168.2.0/24
+          ports: [22]
+          protocol: tcp
+      egress:
+        - comment: reach out to internet
+          ports: [53,80,123,443]
+          to:
+            - 0.0.0.0/0
 
 - name: release a firewall
   metal_firewall:
@@ -143,6 +159,7 @@ class Instance(object):
         self._tags = module.params.get('tags') if module.params.get('tags') else []
         self._ssh_pub_keys = module.params.get('ssh_pub_keys')
         self._userdata = module.params.get('userdata')
+        self._rules = module.params.get('rules')
         self._state = module.params.get('state')
         self._driver = init_driver_for_module(self._module)
         self._api_client = FirewallApi(api_client=self._driver.client)
@@ -219,6 +236,30 @@ class Instance(object):
             user_data=self._userdata,
         )
 
+        if self._rules:
+            rules = models.V1FirewallRules(
+                ingress=[],
+                egress=[],
+            )
+
+            for rule in self._rules.get('ingress', []):
+                rules.ingress.append(models.V1FirewallIngressRule(
+                    comment=rule.get('comment'),
+                    _from=rule.get('source'),
+                    ports=rule.get('ports'),
+                    protocol=rule.get('protocol'),
+                    to=rule.get('to', []),
+                ))
+            for rule in self._rules.get('egress', []):
+                rules.egress.append(models.V1FirewallEgressRule(
+                    comment=rule.get('comment'),
+                    ports=rule.get('ports'),
+                    protocol=rule.get('protocol'),
+                    to=rule.get('to'),
+                ))
+
+            r.firewall_rules = rules
+
         try:
             self._firewall = self._api_client.allocate_firewall(r)
         except rest.ApiException as e:
@@ -254,6 +295,21 @@ def main():
         tags=dict(type='list', default=list(), required=False),
         ssh_pub_keys=dict(type='list', default=list(), required=False),
         userdata=dict(type='str', required=False),
+        rules=dict(type='dict', required=False, options=dict(
+            ingress=dict(type='list', required=False, options=dict(
+                comment=dict(type='str', required=False),
+                source=dict(type='list', required=True),
+                ports=dict(type='list', required=True),
+                protocol=dict(type='str', required=False),
+                to=dict(type='list', required=False),
+            )),
+            egress=dict(type='list', required=False, options=dict(
+                comment=dict(type='str', required=False),
+                ports=dict(type='list', required=True),
+                protocol=dict(type='str', required=False),
+                to=dict(type='list', required=True),
+            )),
+        )),
         state=dict(type='str', choices=['present', 'absent'], default='present'),
     ))
     module = AnsibleModule(
