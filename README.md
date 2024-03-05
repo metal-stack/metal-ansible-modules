@@ -1,3 +1,5 @@
+# ⚠️ This repository has been archived. Please migrate to [metal-ansible-collections](https://github.com/metal-stack/metal-ansible-collections)!
+
 # Metal Ansible Modules
 
 This repository contains modules and plugins for metal-stack.
