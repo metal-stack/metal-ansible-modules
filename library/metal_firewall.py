@@ -243,20 +243,32 @@ class Instance(object):
             )
 
             for rule in self._rules.get('ingress', []):
-                rules.ingress.append(models.V1FirewallIngressRule(
-                    comment=rule.get('comment'),
+                elem = models.V1FirewallIngressRule(
                     _from=rule.get('source'),
                     ports=rule.get('ports'),
-                    protocol=rule.get('protocol'),
                     to=rule.get('to', []),
-                ))
+                )
+
+                if rule.get('comment'):
+                    elem.comment = rule.get('comment')
+                if rule.get('protocol'):
+                    elem.protocol = rule.get('protocol')
+
+                rules.ingress.append(elem)
+
             for rule in self._rules.get('egress', []):
-                rules.egress.append(models.V1FirewallEgressRule(
-                    comment=rule.get('comment'),
+                elem = models.V1FirewallEgressRule(
                     ports=rule.get('ports'),
                     protocol=rule.get('protocol'),
                     to=rule.get('to'),
-                ))
+                )
+
+                if rule.get('comment'):
+                    elem.comment = rule.get('comment')
+                if rule.get('protocol'):
+                    elem.protocol = rule.get('protocol')
+
+                rules.egress.append(elem)
 
             r.firewall_rules = rules
 
