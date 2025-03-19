@@ -69,6 +69,7 @@ options:
     networks:
         description:
             - The networks of the firewall.
+            - IP acquisition mode can be specified by adding :auto or :noauto to the network name.
         required: false
     ips:
         description:
@@ -216,7 +217,20 @@ class Instance(object):
     def _allocate(self):
         networks = list()
         for n in self._networks:
-            networks.append(models.V1MachineAllocationNetwork(autoacquire=True, networkid=n))
+            auto_acquire = True
+            network_id = n
+            if ":" in n:
+                network_id = n.split(":")[0]
+                mode = n.split(":")[-1]
+                if mode == "noauto":
+                    auto_acquire = False
+                elif mode == "auto":
+                    auto_acquire = True
+                else:
+                    self._module.fail_json(
+                        msg="network acquisition mode not supported: %s" % mode)
+
+            networks.append(models.V1MachineAllocationNetwork(autoacquire=auto_acquire, networkid=network_id))
 
         self._tags.append(ANSIBLE_CI_MANAGED_TAG)
 

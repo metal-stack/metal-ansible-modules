@@ -43,6 +43,7 @@ class TestMetalNetworkModule(MetalModules):
                                             underlay=False,
                                             shared=False,
                                             labels={"ci.metal-stack.io/manager": "ansible"},
+                                            consumption=models.V1NetworkConsumption(),
                                             usage=models.V1NetworkUsage(
                                                 available_ips=10,
                                                 available_prefixes=1,
@@ -95,6 +96,7 @@ class TestMetalNetworkModule(MetalModules):
                                             underlay=False,
                                             shared=False,
                                             labels={"ci.metal-stack.io/manager": "ansible"},
+                                            consumption=models.V1NetworkConsumption(),
                                             usage=models.V1NetworkUsage(
                                                 available_ips=10,
                                                 available_prefixes=1,
@@ -117,6 +119,7 @@ class TestMetalNetworkModule(MetalModules):
                                         underlay=False,
                                         shared=False,
                                         labels={"ci.metal-stack.io/manager": "ansible"},
+                                        consumption=models.V1NetworkConsumption(),
                                         usage=models.V1NetworkUsage(
                                             available_ips=10,
                                             available_prefixes=1,
@@ -172,6 +175,7 @@ class TestMetalNetworkModule(MetalModules):
                                         underlay=False,
                                         shared=False,
                                         labels={"ci.metal-stack.io/manager": "ansible", "user": "label"},
+                                        consumption=models.V1NetworkConsumption(),
                                         usage=models.V1NetworkUsage(
                                             available_ips=10,
                                             available_prefixes=1,
@@ -232,6 +236,7 @@ class TestMetalNetworkModule(MetalModules):
                                             privatesuper=False,
                                             underlay=False,
                                             labels={"ci.metal-stack.io/manager": "ansible"},
+                                            consumption=models.V1NetworkConsumption(),
                                             usage=models.V1NetworkUsage(
                                                 available_ips=10,
                                                 available_prefixes=1,
@@ -251,6 +256,7 @@ class TestMetalNetworkModule(MetalModules):
                                         privatesuper=False,
                                         underlay=False,
                                         labels={"ci.metal-stack.io/manager": "ansible"},
+                                        consumption=models.V1NetworkConsumption(),
                                         usage=models.V1NetworkUsage(
                                             available_ips=10,
                                             available_prefixes=1,
