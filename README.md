@@ -4,6 +4,8 @@ This repository contains modules and plugins for metal-stack.
 
 The modules use [metal-python](https://github.com/metal-stack/metal-python) for accessing the metal-api. Please make sure you use the correct version of this repository in order to be compatible with the API.
 
+The v2 modules require the [metal-stack-api](https://pypi.org/project/metal-stack-api/) python client from the [api](https://github.com/metal-stack/api) repository.
+
 ## Modules
 
 | Module Name                                 | Description                           | Requirements |
@@ -13,6 +15,12 @@ The modules use [metal-python](https://github.com/metal-stack/metal-python) for 
 | [metal_machine](library/metal_machine.py)   | Manages metal-stack machine entities  | metal-python |
 | [metal_network](library/metal_network.py)   | Manages metal-stack network entities  | metal-python |
 | [metal_project](library/metal_project.py)   | Manages metal-stack project entities  | metal-python |
+
+## V2 Modules
+
+| Module Name                                     | Description                          | Requirements    |
+| ----------------------------------------------- | ------------------------------------ | --------------- |
+| [metal_v2_project](library/metal_v2_project.py) | Manages metal-stack project entities | metal-stack-api |
 
 ## Dynamic Inventories
 
