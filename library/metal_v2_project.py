@@ -7,6 +7,7 @@ from connecpy.exceptions import ConnecpyException
 from metalstack.client import client as apiclient
 from metalstack.api.v2 import common_pb2, project_pb2
 
+from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, init_client_for_module
 
 try:
     from connecpy.exceptions import ConnecpyException
@@ -95,13 +96,6 @@ id:
 '''
 
 
-# TODO: move to module utils
-ANSIBLE_CI_MANAGED_KEY = "ci.metal-stack.io/manager"
-ANSIBLE_CI_MANAGED_VALUE = "ansible"
-ANSIBLE_CI_MANAGED_TAG = ANSIBLE_CI_MANAGED_KEY + "=" + ANSIBLE_CI_MANAGED_VALUE
-ANSIBLE_CI_MANAGED_LABEL = {ANSIBLE_CI_MANAGED_KEY: ANSIBLE_CI_MANAGED_VALUE}
-
-
 class Instance(object):
     def __init__(self, module):
         if not METAL_STACK_API_AVAILABLE:
@@ -119,9 +113,7 @@ class Instance(object):
         self._state = module.params.get('state')
         # self._driver = init_driver_for_module(self._module)
         # self._api_client = ProjectApi(api_client=self._driver.client)
-        self._client = apiclient.Client(baseurl=module.params.get(
-            # TODO: set timeout from params
-            'api_url'), token=module.params.get('api_token'))
+        self._client = init_client_for_module(module)
 
     def run(self):
         if self._module.check_mode:
@@ -191,8 +183,7 @@ class Instance(object):
 
     def _create(self):
         labels = {
-            ANSIBLE_CI_MANAGED_KEY: ANSIBLE_CI_MANAGED_VALUE,
-            "a": "b",
+            # TODO: create ansible labels for identification
         }
 
         r = project_pb2.ProjectServiceCreateRequest(
@@ -205,6 +196,8 @@ class Instance(object):
             r.description = self._description
         if self._avatar_url:
             r.avatar_url = self._avatar_url
+        if self._labels:
+            r.labels = common_pb2.Labels(labels=self._labels | labels)
 
         try:
             self._project = self._client.apiv2().project().create(r)
@@ -227,16 +220,9 @@ class Instance(object):
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
 
-        self._uuid = self._project.uuid
-
 
 def main():
-    # TODO: move to module_utils
-    # argument_spec = AUTH_SPEC.copy()
-    argument_spec = dict(
-        api_url=dict(type='str', required=True),
-        api_token=dict(type='str', required=True, no_log=True),
-    )
+    argument_spec = V2_AUTH_SPEC.copy()
     argument_spec.update(dict(
         name=dict(type='str', required=True),
         tenant=dict(type='str', required=True),
