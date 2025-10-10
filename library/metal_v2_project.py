@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from ansible.module_utils.basic import AnsibleModule
-from connecpy.exceptions import ConnecpyException
 
 from metalstack.client import client as apiclient
 from metalstack.api.v2 import common_pb2, project_pb2
@@ -10,9 +9,8 @@ from metalstack.api.v2 import common_pb2, project_pb2
 from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, init_client_for_module
 
 try:
-    from connecpy.exceptions import ConnecpyException
+    from connectrpc.errors import ConnectError
 
-    from metalstack.client import client as apiclient
     from metalstack.api.v2 import project_pb2
 
     METAL_STACK_API_AVAILABLE = True
@@ -142,7 +140,7 @@ class Instance(object):
 
         try:
             resp = self._client.apiv2().project().list(request=r)
-        except ConnecpyException as e:
+        except ConnectError as e:
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
             return
@@ -177,7 +175,7 @@ class Instance(object):
         if self.changed:
             try:
                 self._project = self._client.apiv2().project().update(r)
-            except ConnecpyException as e:
+            except ConnectError as e:
                 self._module.fail_json(
                     msg="request to metal-apiserver failed", error=str(e))
 
@@ -189,11 +187,10 @@ class Instance(object):
         r = project_pb2.ProjectServiceCreateRequest(
             login=self._tenant,
             name=self._name,
+            description=self._description,
             labels=common_pb2.Labels(labels=labels),
         )
 
-        if self._description:
-            r.description = self._description
         if self._avatar_url:
             r.avatar_url = self._avatar_url
         if self._labels:
@@ -201,7 +198,7 @@ class Instance(object):
 
         try:
             self._project = self._client.apiv2().project().create(r)
-        except ConnecpyException as e:
+        except ConnectError as e:
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
 
@@ -216,7 +213,7 @@ class Instance(object):
             self._project = self._client.apiv2().project().delete(project_pb2.ProjectServiceDeleteRequest(
                 project=self._uuid,
             ))
-        except ConnecpyException as e:
+        except ConnectError as e:
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
 
@@ -226,7 +223,7 @@ def main():
     argument_spec.update(dict(
         name=dict(type='str', required=True),
         tenant=dict(type='str', required=True),
-        description=dict(type='str', required=False),
+        description=dict(type='str', required=True),
         avatar_url=dict(type='str', required=False),
         labels=dict(type='list', required=False),
         state=dict(type='str', choices=[

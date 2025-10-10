@@ -1,7 +1,6 @@
 import os
 
 try:
-    from connecpy.exceptions import ConnecpyException
     from metalstack.client import client as apiclient
 
     METAL_STACK_API_AVAILABLE = True
