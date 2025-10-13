@@ -1,17 +1,19 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
+import json
+
 from ansible.module_utils.basic import AnsibleModule
 
-from metalstack.client import client as apiclient
-from metalstack.api.v2 import common_pb2, project_pb2
+from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, init_client_for_module
 
-from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, init_client_for_module
 
 try:
     from connectrpc.errors import ConnectError
 
-    from metalstack.api.v2 import project_pb2
+    from metalstack.api.v2 import common_pb2, project_pb2
+    from metalstack.client import client as apiclient
 
     METAL_STACK_API_AVAILABLE = True
 except ImportError:
@@ -46,6 +48,10 @@ options:
     description:
         description:
             - The description of the project.
+        required: true
+    avatar_url:
+        description:
+            - The avatar url of the project.
         required: false
     tenant:
         tenant:
@@ -71,12 +77,12 @@ author:
 '''
 
 EXAMPLES = '''
-- name: allocate a project
+- name: create a project
   metal_v2_project:
     name: my-project
-    description: "my project"
-    labels:
-      - my-project-label
+    description: test project
+    tenant: user@oidc
+    avatar_url: http://test
 
 - name: free a project
   metal_v2_project:
@@ -101,7 +107,7 @@ class Instance(object):
 
         self._module = module
         self.changed = False
-        self._project = None
+        self._project: project_pb2.Project = None
         self._uuid = None
         self._name = module.params['name']
         self._description = module.params.get('description')
@@ -109,9 +115,7 @@ class Instance(object):
         self._tenant = module.params.get('tenant')
         self._labels = module.params.get('labels')
         self._state = module.params.get('state')
-        # self._driver = init_driver_for_module(self._module)
-        # self._api_client = ProjectApi(api_client=self._driver.client)
-        self._client = init_client_for_module(module)
+        self._client: apiclient.Client = init_client_for_module(module)
 
     def run(self):
         if self._module.check_mode:
@@ -160,17 +164,36 @@ class Instance(object):
 
     def _update(self):
         r = project_pb2.ProjectServiceUpdateRequest(
-            project=self._uuid
+            project=self._uuid,
+            update_meta=common_pb2.UpdateMeta(
+                locking_strategy=common_pb2.OPTIMISTIC_LOCKING_STRATEGY_CLIENT,
+                updated_at=datetime.now(),
+            ),
         )
 
-        if self._project.description != self._description:
+        if not self._project.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
+            self._module.fail_json(
+                msg=f"refusing to update because label is not present on entity: {V2_ANSIBLE_CI_MANAGED_KEY}={V2_ANSIBLE_CI_MANAGED_VALUE}")
+            return
+
+        if self._name and self._project.name != self._name:
+            self.changed = True
+            r.name = self._name
+
+        if self._description and self._project.description != self._description:
             self.changed = True
             r.description = self._description
 
-        # TODO:
-        # if self._project.meta.labels != self._labels:
-        #     self.changed = True
-        #     meta.labels = self._labels
+        if self._avatar_url and self._project.avatar_url != self._avatar_url:
+            self.changed = True
+            r.avatar_url = self._avatar_url
+
+        if self._labels:
+            self._labels[V2_ANSIBLE_CI_MANAGED_KEY] = V2_ANSIBLE_CI_MANAGED_VALUE
+
+            if self._project.meta.labels != self._labels:
+                self.changed = True
+                r.labels = self._labels
 
         if self.changed:
             try:
@@ -181,7 +204,7 @@ class Instance(object):
 
     def _create(self):
         labels = {
-            # TODO: create ansible labels for identification
+            V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
         }
 
         r = project_pb2.ProjectServiceCreateRequest(
@@ -205,9 +228,10 @@ class Instance(object):
         self._uuid = self._project.project.uuid
 
     def _delete(self):
-        # if self._project.meta.annotations.get(ANSIBLE_CI_MANAGED_KEY) != ANSIBLE_CI_MANAGED_VALUE:
-        #     self._module.fail_json(msg="entity does not have label attached: %s" % ANSIBLE_CI_MANAGED_LABEL,
-        #                            name=self._name)
+        if not self._project.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
+            self._module.fail_json(
+                msg=f"refusing to delete because label is not present on entity: {V2_ANSIBLE_CI_MANAGED_KEY}={V2_ANSIBLE_CI_MANAGED_VALUE}")
+            return
 
         try:
             self._project = self._client.apiv2().project().delete(project_pb2.ProjectServiceDeleteRequest(
@@ -241,6 +265,8 @@ def main():
     result = dict(
         changed=instance.changed,
         id=instance._uuid,
+        # https://github.com/connectrpc/connect-python/issues/32
+        # project=instance._project,
     )
 
     module.exit_json(**result)

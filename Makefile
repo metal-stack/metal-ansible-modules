@@ -21,9 +21,11 @@ run-test-example:
 
 .PHONY: run-v2-test-example
 run-v2-test-example:
+	docker build -f Dockerfile.test --build-arg METAL_DEPLOYMENT_BASE_VERSION=$(METAL_DEPLOYMENT_BASE_VERSION) -t metal-ansible-modules .
 	docker run --rm -it \
+		-e METALCTLV2_API_TOKEN=$(METALCTLV2_API_TOKEN) \
 		-v $(PWD):/metal-modules:ro \
 		-w /metal-modules \
 		--network host \
-		ghcr.io/metal-stack/metal-deployment-base:$(METAL_DEPLOYMENT_BASE_VERSION) /bin/bash -ce \
-		  "ansible-playbook example_v2.yaml -v"
+		metal-ansible-modules /bin/bash -ce \
+		  "ansible-playbook example_v2.yaml -vvv"

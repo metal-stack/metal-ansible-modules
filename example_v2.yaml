@@ -6,103 +6,28 @@
   gather_facts: no
   vars:
     metal_stack_release_version: develop
-    # metal_api_url: http://v2.api.172.17.0.1.nip.io:8080/metal
-    # metal_api_edit_key: metal-edit
     setup_yaml:
       - url: https://raw.githubusercontent.com/metal-stack/releases/{{ metal_stack_release_version }}/release.yaml
         meta_var: metal_stack_release
-  roles:
-    # - ansible-common
-    # - metal-roles
-    # - metal-roles/control-plane/roles/metal-python
+
+  environment:
+    METALCTLV2_API_URL: http://v2.api.172.17.0.1.nip.io:8080
 
   tasks:
     # to install the bug module we need for now a download from the buf.build index:
     # https://github.com/bufbuild/protovalidate-python/pull/367
-    - name: Install latest metal-stack-api
-      pip:
-        name:
-          - metal-stack-api==0.0.23
-          - bufbuild-protovalidate-protocolbuffers-python
-      environment:
-        PIP_EXTRA_INDEX_URL: https://buf.build/gen/python
+    # - name: Install latest metal-stack-api
+    #   pip:
+    #     name:
+    #       - metal-stack-api==0.0.23
+    #       - bufbuild-protovalidate-protocolbuffers-python
+    #   environment:
+    #     PIP_EXTRA_INDEX_URL: https://buf.build/gen/python
 
     - name: Create project
       metal_v2_project:
-        api_url: http://v2.api.172.17.0.1.nip.io:8080
-        api_token: eyJhbGciOiJFUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwOi8vdjIuYXBpLjE3Mi4xNy4wLjEubmlwLmlvOjgwODAiLCJzdWIiOiJDaVF3TURBd01EQXdNQzB3TURBd0xUQXdNREF0TURBd01DMHdNREF3TURBd01EQXdNREVTQld4dlkyRnNAb2lkYyIsImV4cCI6MTc2MDEyMTg4NywibmJmIjoxNzYwMDkzMDg3LCJpYXQiOjE3NjAwOTMwODcsImp0aSI6ImEyMzdkMjc4LTM4ZDMtNDRiZi04MDk5LTFmNTFmYmJkZmNkMiIsInR5cGUiOiJUT0tFTl9UWVBFX0FQSSJ9.AfVYLzwpYFMBCmWcV_6AUZHVMHnTIHpyhqLdUYHSnNxFuNzXRl3L6pFggKrracHPWIlURRwkfwLGctdeG5k4eq7oAT93wONIWZt4hMS4VbJsa9jEmv7lzoJ-PJlczTmi6LCOelc8RbuSd4LYVLK6K1qYtWOEPs9uJPXnWDNCGs-DqSpZ
-        name: test
-        description: test project
+        name: test 2
+        description: test project 2
         tenant: CiQwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDESBWxvY2Fs@oidc
         avatar_url: http://test
-        # state: absent
-
-    # - name: Allocate network
-    #   metal_network:
-    #     api_url: "{{ metal_api_url }}"
-    #     api_hmac: "{{ metal_api_edit_key }}"
-    #     name: test
-    #     description: test network
-    #     partition: mini-lab
-    #     project: 00000000-0000-0000-0000-000000000000
-    #   register: network
-
-    # - name: Lookup project network
-    #   set_fact:
-    #     project_networks: "{{ lookup('metal', 'search', 'network', api_hmac=metal_api_edit_key, projectid='00000000-0000-0000-0000-000000000000') }}"
-
-    # - name: Assert network
-    #   assert:
-    #     fail_msg: "network was not created properly"
-    #     quiet: yes
-    #     that:
-    #       - project_networks | length == 1
-    #       - project_networks[0].name == "test"
-    #       - project_networks[0].description == "test network"
-    #       - project_networks[0].partitionid == "mini-lab"
-    #       - project_networks[0].parentnetworkid == "tenant-super-network-mini-lab"
-    #       - project_networks[0].projectid == "00000000-0000-0000-0000-000000000000"
-    #       - project_networks[0].nat == False
-    #       - project_networks[0].underlay == False
-    #       - project_networks[0].privatesuper == False
-    #       - project_networks[0].vrf > 0
-
-    # - name: Allocate IP
-    #   metal_ip:
-    #     api_url: "{{ metal_api_url }}"
-    #     api_hmac: "{{ metal_api_edit_key }}"
-    #     network: "{{ network.id }}"
-    #     name: test
-    #     description: test ip
-    #     project: 00000000-0000-0000-0000-000000000000
-    #   register: ip
-
-    # - name: Lookup IP
-    #   set_fact:
-    #     looked_up_ip: "{{ lookup('metal', 'get', 'ip', api_hmac=metal_api_edit_key, id=ip.ip) }}"
-
-    # - name: Assert IP
-    #   assert:
-    #     fail_msg: "ip was not created properly"
-    #     quiet: yes
-    #     that:
-    #       - looked_up_ip.name == "test"
-    #       - looked_up_ip.description == "test ip"
-    #       - looked_up_ip.ipaddress == ip.ip
-    #       - looked_up_ip.networkid == network.id
-    #       - looked_up_ip.projectid == "00000000-0000-0000-0000-000000000000"
-    #       - looked_up_ip.type == "ephemeral"
-
-    # - name: Release IP
-    #   metal_ip:
-    #     api_url: "{{ metal_api_url }}"
-    #     api_hmac: "{{ metal_api_edit_key }}"
-    #     ip: "{{ ip.ip }}"
-    #     state: absent
-
-    # - name: Release network
-    #   metal_network:
-    #     api_url: "{{ metal_api_url }}"
-    #     api_hmac: "{{ metal_api_edit_key }}"
-    #     id: "{{ network.id }}"
-    #     state: absent
+        state: absent
