@@ -26,9 +26,21 @@
 
     - name: Create project
       metal_v2_project:
-        name: test 2
-        description: test project 2
+        name: test
+        description: test project
         tenant: CiQwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDESBWxvY2Fs@oidc
         avatar_url: http://test
         # state: absent
-      register: res
+      register: project
+
+    - name: Create token
+      metal_v2_api_token:
+        description: "for metal-bmc"
+        expires: 1d
+        permissions:
+          - subject: "{{ project.id }}"
+            methods:
+             - /metalstack.infra.v2.BMCService/UpdateBMCInfo
+             - /metalstack.api.v2.TokenService/Refresh
+        admin_role: ADMIN_ROLE_EDITOR
+        # state: absent

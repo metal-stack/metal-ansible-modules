@@ -1,4 +1,6 @@
 import os
+import re
+from datetime import timedelta
 
 try:
     from metalstack.client import client as apiclient
@@ -44,3 +46,27 @@ def init_client_for_module(module) -> apiclient.Client:
         args["timeout"] = timeout
 
     return apiclient.Client(**args)
+
+
+# taken from this gist: https://gist.github.com/santiagobasulto/698f0ff660968200f873a2f9d1c4113c
+
+TIMEDELTA_REGEX = (r'((?P<days>\d+)d)?'
+                   r'((?P<hours>\d+)h)?'
+                   r'((?P<minutes>\d+)m)?')
+TIMEDELTA_PATTERN = re.compile(TIMEDELTA_REGEX, re.IGNORECASE)
+
+
+def parse_delta(delta) -> timedelta:
+    """ Parses a human readable timedelta (3d5h19m) into a datetime.timedelta.
+    Delta includes:
+    * Xd days
+    * Xh hours
+    * Xm minutes
+    """
+    match = TIMEDELTA_PATTERN.match(delta)
+    if match:
+        parts = {k: int(v) for k, v in match.groupdict().items() if v}
+        return timedelta(**parts)
+    else:
+        raise RuntimeError(
+            "unable to parse timedelta (may only contain minutes, hours and days), valid args look like 8h, 20d4h3m, ...")
