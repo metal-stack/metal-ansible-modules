@@ -42,5 +42,4 @@
             methods:
              - /metalstack.infra.v2.BMCService/UpdateBMCInfo
              - /metalstack.api.v2.TokenService/Refresh
-        admin_role: ADMIN_ROLE_EDITOR
         # state: absent
