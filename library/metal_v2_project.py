@@ -2,15 +2,13 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
-import json
-
 from ansible.module_utils.basic import AnsibleModule
-
 from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, init_client_for_module
 
 
 try:
     from connectrpc.errors import ConnectError
+    from google.protobuf.json_format import MessageToDict
 
     from metalstack.api.v2 import common_pb2, project_pb2
     from metalstack.client import client as apiclient
@@ -30,7 +28,7 @@ DOCUMENTATION = '''
 ---
 module: metal_v2_project
 
-short_description: A module to manage metal project entities
+short_description: A module to manage metal project entities.
 
 version_added: "2.18"
 
@@ -94,9 +92,25 @@ RETURN = '''
 id:
     description:
         - project id
-    returned: always
+    returned: ifexisted
     type: str
     sample: 3e977e81-6ab5-4f28-b608-e7e94d62efb7
+project:
+    description:
+        - project response
+    returned: ifexisted
+    type: dict
+    sample:
+        avatarUrl: http://test
+        description: test project
+        meta:
+            createdAt: '2025-01-01T12:00:00.00000000Z'
+            labels:
+                labels:
+                    ci.metal-stack.io/manager: ansible
+        name: test
+        tenant: user@oidc
+        uuid: 3e977e81-6ab5-4f28-b608-e7e94d62efb7
 '''
 
 
@@ -197,7 +211,8 @@ class Instance(object):
 
         if self.changed:
             try:
-                self._project = self._client.apiv2().project().update(r)
+                resp = self._client.apiv2().project().update(r)
+                self._project = resp.project
             except ConnectError as e:
                 self._module.fail_json(
                     msg="request to metal-apiserver failed", error=str(e))
@@ -220,12 +235,13 @@ class Instance(object):
             r.labels = common_pb2.Labels(labels=self._labels | labels)
 
         try:
-            self._project = self._client.apiv2().project().create(r)
+            resp = self._client.apiv2().project().create(r)
+            self._project = resp.project
         except ConnectError as e:
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
 
-        self._uuid = self._project.project.uuid
+        self._uuid = self._project.uuid
 
     def _delete(self):
         if not self._project.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
@@ -234,9 +250,10 @@ class Instance(object):
             return
 
         try:
-            self._project = self._client.apiv2().project().delete(project_pb2.ProjectServiceDeleteRequest(
+            resp = self._client.apiv2().project().delete(project_pb2.ProjectServiceDeleteRequest(
                 project=self._uuid,
             ))
+            self._project = resp.project
         except ConnectError as e:
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
@@ -265,9 +282,10 @@ def main():
     result = dict(
         changed=instance.changed,
         id=instance._uuid,
-        # https://github.com/connectrpc/connect-python/issues/32
-        # project=instance._project,
     )
+
+    if instance._project:
+        result['project'] = MessageToDict(instance._project)
 
     module.exit_json(**result)
 

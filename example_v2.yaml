@@ -30,4 +30,5 @@
         description: test project 2
         tenant: CiQwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDESBWxvY2Fs@oidc
         avatar_url: http://test
-        state: absent
+        # state: absent
+      register: res
