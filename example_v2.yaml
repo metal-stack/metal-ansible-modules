@@ -24,6 +24,15 @@
     #   environment:
     #     PIP_EXTRA_INDEX_URL: https://buf.build/gen/python
 
+    - name: Create tenant
+      metal_v2_tenant:
+        name: test
+        description: test tenant
+        avatar_url: http://test
+        email: test@test.com
+        # state: absent
+      register: tenant
+
     - name: Create project
       metal_v2_project:
         name: test

@@ -10,7 +10,7 @@ try:
     from connectrpc.errors import ConnectError
     from google.protobuf.json_format import MessageToDict
 
-    from metalstack.api.v2 import common_pb2, project_pb2
+    from metalstack.api.v2 import common_pb2, tenant_pb2
     from metalstack.client import client as apiclient
 
     METAL_STACK_API_AVAILABLE = True
@@ -26,44 +26,44 @@ ANSIBLE_METADATA = {
 
 DOCUMENTATION = '''
 ---
-module: metal_v2_project
+module: metal_v2_tenant
 
-short_description: A module to manage metal project entities.
+short_description: A module to manage metal tenant entities.
 
 version_added: "2.18"
 
 description:
-    - Manages project entities in the metal-apiserver.
+    - Manages tenant entities in the metal-apiserver.
     - Requires metal-stack-api to be installed.
 
 options:
     name:
         description:
             - >-
-              The name of the project, which must be unique in the tenant.
-              Otherwise, the module cannot figure out if the project was already created or not.
+              The name of the tenant, which must be unique for the token user that creates this tenant.
+              Otherwise, the module cannot figure out if the tenant was already created or not.
         required: true
     description:
         description:
-            - The description of the project.
+            - The description of the tenant.
         required: true
     avatar_url:
         description:
-            - The avatar url of the project.
+            - The avatar url of the tenant.
         required: false
-    tenant:
-        tenant:
-            - The tenant of the project.
+    email:
+        description:
+            - The email of the tenant.
         required: false
     labels:
         description:
-            - The labels of the project.
+            - The labels of the tenant.
         required: false
     state:
         description:
-          - Assert the state of the project.
+          - Assert the state of the tenant.
           - >-
-            Use C(present) to create or update a project and C(absent) to
+            Use C(present) to create or update a tenant and C(absent) to
             delete it.
         default: present
         choices:
@@ -75,42 +75,38 @@ author:
 '''
 
 EXAMPLES = '''
-- name: create a project
-  metal_v2_project:
-    name: my-project
-    description: test project
-    tenant: user@oidc
+- name: create a tenant
+  metal_v2_tenant:
+    name: my-tenant
+    description: test tenant
     avatar_url: http://test
+    email: test@test.com
 
-- name: free a project
-  metal_v2_project:
-    name: my-project
+- name: free a tenant
+  metal_v2_tenant:
+    name: my-tenant
     state: absent
 '''
 
 RETURN = '''
 id:
     description:
-        - project id
+        - tenant id
     returned: ifexisted
     type: str
-    sample: 3e977e81-6ab5-4f28-b608-e7e94d62efb7
-project:
-    description:
-        - project response
-    returned: ifexisted
-    type: dict
-    sample:
-        avatarUrl: http://test
-        description: test project
-        meta:
-            createdAt: '2025-01-01T12:00:00.00000000Z'
+    sample: b5bc5d9f-3ade-4eac-bb8c-eb309045151f
+tenant:
+    avatarUrl: http://test
+    createdBy: user@oidc
+    description: test tenant
+    email: admin@metal-stack.io
+    login: b5bc5d9f-3ade-4eac-bb8c-eb309045151f
+    meta:
+        createdAt: '2025-01-01T12:00:00.00000000Z'
+        labels:
             labels:
-                labels:
-                    ci.metal-stack.io/manager: ansible
-        name: test
-        tenant: user@oidc
-        uuid: 3e977e81-6ab5-4f28-b608-e7e94d62efb7
+                ci.metal-stack.io/manager: ansible
+    name: test
 '''
 
 
@@ -121,12 +117,12 @@ class Instance(object):
 
         self._module = module
         self.changed = False
-        self._project: project_pb2.Project = None
-        self._uuid = None
+        self._tenant: tenant_pb2.Tenant = None
+        self._login = None
         self._name = module.params['name']
         self._description = module.params.get('description')
         self._avatar_url = module.params.get('avatar_url')
-        self._tenant = module.params.get('tenant')
+        self._email = module.params.get('email')
         self._labels = module.params.get('labels')
         self._state = module.params.get('state')
         self._client: apiclient.Client = init_client_for_module(module)
@@ -138,7 +134,7 @@ class Instance(object):
         self._find()
 
         if self._state == "present":
-            if self._project:
+            if self._tenant:
                 self._update()
                 return
 
@@ -146,69 +142,72 @@ class Instance(object):
             self.changed = True
 
         elif self._state == "absent":
-            if self._project:
+            if self._tenant:
                 self._delete()
                 self.changed = True
 
     def _find(self):
-        r = project_pb2.ProjectServiceListRequest(
+        r = tenant_pb2.TenantServiceListRequest(
             name=self._name,
-            tenant=self._tenant,
         )
 
         try:
-            resp = self._client.apiv2().project().list(request=r)
+            resp = self._client.apiv2().tenant().list(request=r)
         except ConnectError as e:
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
             return
 
-        projects = resp.projects
+        tenants = resp.tenants
 
-        if projects is None:
+        if tenants is None:
             return
 
-        if len(projects) > 1:
+        if len(tenants) > 1:
             self._module.fail_json(
-                msg="project name is not unique within the tenant, which is required when "
+                msg="tenant name is not unique, which is required when "
                     "using this module", name=self._name)
-        elif len(projects) == 1:
-            self._project = projects[0]
-            self._uuid = self._project.uuid
+        elif len(tenants) == 1:
+            self._tenant = tenants[0]
+            self._login = self._tenant.login
 
     def _update(self):
-        r = project_pb2.ProjectServiceUpdateRequest(
-            project=self._uuid,
+        r = tenant_pb2.TenantServiceUpdateRequest(
+            login=self._login,
             update_meta=common_pb2.UpdateMeta(
                 locking_strategy=common_pb2.OPTIMISTIC_LOCKING_STRATEGY_CLIENT,
                 updated_at=datetime.now(),
             ),
         )
 
-        if not self._project.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
+        if not self._tenant.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
             self._module.fail_json(
                 msg=f"refusing to update because label is not present on entity: {V2_ANSIBLE_CI_MANAGED_KEY}={V2_ANSIBLE_CI_MANAGED_VALUE}")
             return
 
-        if self._description and self._project.description != self._description:
+        if self._description and self._tenant.description != self._description:
             self.changed = True
             r.description = self._description
 
-        if self._avatar_url and self._project.avatar_url != self._avatar_url:
+        if self._avatar_url and self._tenant.avatar_url != self._avatar_url:
             self.changed = True
             r.avatar_url = self._avatar_url
+
+        if self._email and self._tenant.email != self._email:
+            self.changed = True
+            r.email = self._email
 
         if self._labels:
             self._labels[V2_ANSIBLE_CI_MANAGED_KEY] = V2_ANSIBLE_CI_MANAGED_VALUE
 
-            if self._project.meta.labels != self._labels:
+            if self._tenant.meta.labels != self._labels:
                 self.changed = True
                 r.labels = self._labels
 
         if self.changed:
             try:
-                resp = self._client.apiv2().project().update(r)
-                self._project = resp.project
+                resp = self._client.apiv2().tenant().update(r)
+                self._tenant = resp.tenant
             except ConnectError as e:
                 self._module.fail_json(
                     msg="request to metal-apiserver failed", error=str(e))
@@ -218,8 +217,7 @@ class Instance(object):
             V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
         }
 
-        r = project_pb2.ProjectServiceCreateRequest(
-            login=self._tenant,
+        r = tenant_pb2.TenantServiceCreateRequest(
             name=self._name,
             description=self._description,
             labels=common_pb2.Labels(labels=labels),
@@ -227,29 +225,31 @@ class Instance(object):
 
         if self._avatar_url:
             r.avatar_url = self._avatar_url
+        if self._email:
+            r.email = self._email
         if self._labels:
             r.labels = common_pb2.Labels(labels=self._labels | labels)
 
         try:
-            resp = self._client.apiv2().project().create(r)
-            self._project = resp.project
+            resp = self._client.apiv2().tenant().create(r)
+            self._tenant = resp.tenant
         except ConnectError as e:
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
 
-        self._uuid = self._project.uuid
+        self._login = self._tenant.login
 
     def _delete(self):
-        if not self._project.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
+        if not self._tenant.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
             self._module.fail_json(
                 msg=f"refusing to delete because label is not present on entity: {V2_ANSIBLE_CI_MANAGED_KEY}={V2_ANSIBLE_CI_MANAGED_VALUE}")
             return
 
         try:
-            resp = self._client.apiv2().project().delete(project_pb2.ProjectServiceDeleteRequest(
-                project=self._uuid,
+            resp = self._client.apiv2().tenant().delete(tenant_pb2.TenantServiceDeleteRequest(
+                login=self._login,
             ))
-            self._project = resp.project
+            self._tenant = resp.tenant
         except ConnectError as e:
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
@@ -259,9 +259,9 @@ def main():
     argument_spec = V2_AUTH_SPEC.copy()
     argument_spec.update(dict(
         name=dict(type='str', required=True),
-        tenant=dict(type='str', required=True),
         description=dict(type='str', required=True),
         avatar_url=dict(type='str', required=False),
+        email=dict(type='str', required=False),
         labels=dict(type='list', required=False),
         state=dict(type='str', choices=[
                    'present', 'absent'], default='present'),
@@ -277,11 +277,11 @@ def main():
 
     result = dict(
         changed=instance.changed,
-        id=instance._uuid,
+        id=instance._login,
     )
 
-    if instance._project:
-        result['project'] = MessageToDict(instance._project)
+    if instance._tenant:
+        result['tenant'] = MessageToDict(instance._tenant)
 
     module.exit_json(**result)
 
