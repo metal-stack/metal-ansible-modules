@@ -99,6 +99,12 @@ id:
     returned: ifexisted but not returned on deletion
     type: str
     sample: ae6834bd-1ca8-4d22-b38a-8a7c771c06b0
+secret:
+    description:
+        - the token secret
+    returned: oncreation
+    type: str
+    sample: <a-secret-jwt-token>
 token:
     description: for metal-bmc
     expires: '2025-01-01T14:00:00.00000000Z'
@@ -122,6 +128,7 @@ class Instance(object):
         self.changed = False
         self._token: token_pb2.Token = None
         self._uuid = None
+        self._secret = None
         self._description = module.params.get('description')
         self._expires = parse_delta(module.params.get(
             'expires')) if module.params.get('expires') else None
@@ -288,6 +295,7 @@ class Instance(object):
         try:
             resp = self._client.apiv2().token().create(r)
             self._token = resp.token
+            self._secret = resp.secret
         except ConnectError as e:
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
@@ -347,6 +355,8 @@ def main():
 
     if instance._token:
         result['token'] = MessageToDict(instance._token)
+    if instance._secret:
+        result['secret'] = instance._secret
 
     module.exit_json(**result)
 
