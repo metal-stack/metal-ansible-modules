@@ -1,0 +1,3 @@
+ARG METAL_DEPLOYMENT_BASE_VERSION=latest
+FROM ghcr.io/metal-stack/metal-deployment-base:${METAL_DEPLOYMENT_BASE_VERSION}
+RUN pip install metal-stack-api bufbuild-protovalidate-protocolbuffers-python --extra-index-url  https://buf.build/gen/python

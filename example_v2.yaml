@@ -1,0 +1,54 @@
+---
+# requires the mini-lab to be running
+- name: Running modules
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars:
+    metal_stack_release_version: develop
+    setup_yaml:
+      - url: https://raw.githubusercontent.com/metal-stack/releases/{{ metal_stack_release_version }}/release.yaml
+        meta_var: metal_stack_release
+
+  environment:
+    METALCTLV2_API_URL: http://v2.api.172.17.0.1.nip.io:8080
+
+  tasks:
+    # to install the bug module we need for now a download from the buf.build index:
+    # https://github.com/bufbuild/protovalidate-python/pull/367
+    # - name: Install latest metal-stack-api
+    #   pip:
+    #     name:
+    #       - metal-stack-api==0.0.23
+    #       - bufbuild-protovalidate-protocolbuffers-python
+    #   environment:
+    #     PIP_EXTRA_INDEX_URL: https://buf.build/gen/python
+
+    - name: Create tenant
+      metal_v2_tenant:
+        name: test
+        description: test tenant
+        avatar_url: http://test
+        email: test@test.com
+        # state: absent
+      register: tenant
+
+    - name: Create project
+      metal_v2_project:
+        name: test
+        description: test project
+        tenant: CiQwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDESBWxvY2Fs@oidc
+        avatar_url: http://test
+        # state: absent
+      register: project
+
+    - name: Create token
+      metal_v2_api_token:
+        description: "for metal-bmc"
+        expires: 1d
+        permissions:
+          - subject: "{{ project.id }}"
+            methods:
+             - /metalstack.infra.v2.BMCService/UpdateBMCInfo
+             - /metalstack.api.v2.TokenService/Refresh
+        # state: absent
