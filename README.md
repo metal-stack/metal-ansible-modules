@@ -21,6 +21,7 @@ The v2 modules require the [metal-stack-api](https://pypi.org/project/metal-stac
 | Module Name                                         | Description                            | Requirements    |
 | --------------------------------------------------- | -------------------------------------- | --------------- |
 | [metal_v2_project](library/metal_v2_project.py)     | Manages metal-stack project entities   | metal-stack-api |
+| [metal_v2_tenant](library/metal_v2_tenant.py)       | Manages metal-stack tenant entities    | metal-stack-api |
 | [metal_v2_api_token](library/metal_v2_api_token.py) | Manages metal-stack api token entities | metal-stack-api |
 
 ## Dynamic Inventories
