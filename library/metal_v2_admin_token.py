@@ -11,6 +11,7 @@ try:
     from google.protobuf.json_format import MessageToDict
 
     from metalstack.api.v2 import common_pb2, token_pb2
+    from metalstack.admin.v2 import token_pb2 as admin_token_pb2
     from metalstack.client import client as apiclient
 
     METAL_STACK_API_AVAILABLE = True
@@ -26,7 +27,7 @@ ANSIBLE_METADATA = {
 
 DOCUMENTATION = '''
 ---
-module: metal_v2_api_token
+module: metal_v2_admin_token
 
 short_description: A module to manage api token entities.
 
@@ -41,6 +42,10 @@ options:
         description:
             - The description of the token, which must be unique for the user who creates the api token.
               Otherwise, the module cannot figure out if the token was already created or not.
+        required: true
+    user:
+        description:
+            - The user to whom the created token will belong.
         required: true
     admin_role:
         description:
@@ -79,15 +84,18 @@ author:
 
 EXAMPLES = '''
 - name: create a token
-  metal_v2_api_token:
+  metal_v2_admin_token:
+    user: metal-bmc
     description: an infra component token
     permissions:
-    - subject: 3e977e81-6ab5-4f28-b608-e7e94d62efb7
+    - subject: '*'
       methods:
         - /metalstack.infra.v2.BMCService/UpdateBMCInfo
+        - /metalstack.api.v2.TokenService/Refresh
 
 - name: revoke a token
-  metal_v2_api_token:
+  metal_v2_admin_token:
+    user: metal-bmc
     description: an infra component token
     state: absent
 '''
@@ -112,7 +120,8 @@ token:
     permissions:
     -   methods:
         - /metalstack.infra.v2.BMCService/UpdateBMCInfo
-        subject: e0588ffb-8e95-4f51-ba68-721cbf798543
+        - /metalstack.api.v2.TokenService/Refresh
+        subject: '*'
     tokenType: TOKEN_TYPE_API
     user: user@oidc
     uuid: ae6834bd-1ca8-4d22-b38a-8a7c771c06b0
@@ -129,6 +138,7 @@ class Instance(object):
         self._token: token_pb2.Token = None
         self._uuid = None
         self._secret = None
+        self._user = module.params.get('user')
         self._description = module.params.get('description')
         self._expires = parse_delta(module.params.get(
             'expires')) if module.params.get('expires') else None
@@ -161,11 +171,12 @@ class Instance(object):
                 self.changed = True
 
     def _find(self):
-        # TODO: some search filters would be useful in the API?
-        r = token_pb2.TokenServiceListRequest()
+        r = admin_token_pb2.TokenServiceListRequest(
+            user=self._user
+        )
 
         try:
-            resp = self._client.apiv2().token().list(request=r, headers=self._headers)
+            resp = self._client.adminv2().token().list(request=r, headers=self._headers)
         except ConnectError as e:
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
@@ -295,7 +306,10 @@ class Instance(object):
                     role.get("role"))
 
         try:
-            resp = self._client.apiv2().token().create(request=r, headers=self._headers)
+            resp = self._client.adminv2().token().create(request=admin_token_pb2.TokenServiceCreateRequest(
+                user=self._user,
+                token_create_request=r,
+            ), headers=self._headers)
             self._token = resp.token
             self._secret = resp.secret
         except ConnectError as e:
@@ -312,7 +326,8 @@ class Instance(object):
         #     return
 
         try:
-            self._client.apiv2().token().revoke(request=token_pb2.TokenServiceRevokeRequest(
+            self._client.adminv2().token().revoke(request=admin_token_pb2.TokenServiceRevokeRequest(
+                user=self._user,
                 uuid=self._uuid,
             ), headers=self._headers)
         except ConnectError as e:
@@ -323,6 +338,7 @@ class Instance(object):
 def main():
     argument_spec = V2_AUTH_SPEC.copy()
     argument_spec.update(dict(
+        user=dict(type='str', required=True),
         description=dict(type='str', required=True),
         expires=dict(type='str', required=False),
         permissions=dict(type='list', required=False, elements='dict', options=dict(
