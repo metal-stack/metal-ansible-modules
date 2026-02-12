@@ -82,7 +82,7 @@ EXAMPLES = '''
     avatar_url: http://test
     email: test@test.com
 
-- name: free a tenant
+- name: delete a tenant
   metal_v2_tenant:
     name: my-tenant
     state: absent
