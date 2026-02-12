@@ -28,4 +28,4 @@ run-v2-test-example:
 		-w /metal-modules \
 		--network host \
 		metal-ansible-modules /bin/bash -ce \
-		  "pip freeze; ansible-playbook example_v2.yaml -vvv"
+		  "ansible-playbook example_v2.yaml -vvv"
