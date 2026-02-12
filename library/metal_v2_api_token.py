@@ -137,7 +137,9 @@ class Instance(object):
         self._admin_role = module.params.get('admin_role')
         self._permissions = module.params.get('permissions')
         self._state = module.params.get('state')
-        self._client: apiclient.Client = init_client_for_module(module)
+        client = init_client_for_module(module)
+        self._client: apiclient.Client = client[0]
+        self._headers: dict = client[1]
 
     def run(self):
         if self._module.check_mode:
@@ -163,7 +165,7 @@ class Instance(object):
         r = token_pb2.TokenServiceListRequest()
 
         try:
-            resp = self._client.apiv2().token().list(request=r)
+            resp = self._client.apiv2().token().list(request=r, headers=self._headers)
         except ConnectError as e:
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
@@ -254,7 +256,7 @@ class Instance(object):
 
         if self.changed:
             try:
-                resp = self._client.apiv2().token().update(r)
+                resp = self._client.apiv2().token().update(request=r, headers=self._headers)
                 self._token = resp.token
             except ConnectError as e:
                 self._module.fail_json(
@@ -293,7 +295,7 @@ class Instance(object):
                     role.get("role"))
 
         try:
-            resp = self._client.apiv2().token().create(r)
+            resp = self._client.apiv2().token().create(request=r, headers=self._headers)
             self._token = resp.token
             self._secret = resp.secret
         except ConnectError as e:
@@ -310,9 +312,9 @@ class Instance(object):
         #     return
 
         try:
-            self._client.apiv2().token().revoke(token_pb2.TokenServiceRevokeRequest(
+            self._client.apiv2().token().revoke(request=token_pb2.TokenServiceRevokeRequest(
                 uuid=self._uuid,
-            ))
+            ), headers=self._headers)
         except ConnectError as e:
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))

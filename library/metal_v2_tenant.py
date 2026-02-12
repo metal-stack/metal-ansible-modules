@@ -125,7 +125,9 @@ class Instance(object):
         self._email = module.params.get('email')
         self._labels = module.params.get('labels')
         self._state = module.params.get('state')
-        self._client: apiclient.Client = init_client_for_module(module)
+        client = init_client_for_module(module)
+        self._client: apiclient.Client = client[0]
+        self._headers: dict = client[1]
 
     def run(self):
         if self._module.check_mode:
@@ -152,7 +154,7 @@ class Instance(object):
         )
 
         try:
-            resp = self._client.apiv2().tenant().list(request=r)
+            resp = self._client.apiv2().tenant().list(request=r, headers=self._headers)
         except ConnectError as e:
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
@@ -206,7 +208,7 @@ class Instance(object):
 
         if self.changed:
             try:
-                resp = self._client.apiv2().tenant().update(r)
+                resp = self._client.apiv2().tenant().update(request=r, headers=self._headers)
                 self._tenant = resp.tenant
             except ConnectError as e:
                 self._module.fail_json(
@@ -231,7 +233,7 @@ class Instance(object):
             r.labels = common_pb2.Labels(labels=self._labels | labels)
 
         try:
-            resp = self._client.apiv2().tenant().create(r)
+            resp = self._client.apiv2().tenant().create(request=r, headers=self._headers)
             self._tenant = resp.tenant
         except ConnectError as e:
             self._module.fail_json(

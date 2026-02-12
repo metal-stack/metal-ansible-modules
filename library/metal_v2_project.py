@@ -129,7 +129,9 @@ class Instance(object):
         self._tenant = module.params.get('tenant')
         self._labels = module.params.get('labels')
         self._state = module.params.get('state')
-        self._client: apiclient.Client = init_client_for_module(module)
+        client = init_client_for_module(module)
+        self._client: apiclient.Client = client[0]
+        self._headers: dict = client[1]
 
     def run(self):
         if self._module.check_mode:
@@ -157,7 +159,7 @@ class Instance(object):
         )
 
         try:
-            resp = self._client.apiv2().project().list(request=r)
+            resp = self._client.apiv2().project().list(request=r, headers=self._headers)
         except ConnectError as e:
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
@@ -207,7 +209,7 @@ class Instance(object):
 
         if self.changed:
             try:
-                resp = self._client.apiv2().project().update(r)
+                resp = self._client.apiv2().project().update(request=r, headers=self._headers)
                 self._project = resp.project
             except ConnectError as e:
                 self._module.fail_json(
@@ -231,7 +233,7 @@ class Instance(object):
             r.labels = common_pb2.Labels(labels=self._labels | labels)
 
         try:
-            resp = self._client.apiv2().project().create(r)
+            resp = self._client.apiv2().project().create(request=r, headers=self._headers)
             self._project = resp.project
         except ConnectError as e:
             self._module.fail_json(
@@ -248,7 +250,7 @@ class Instance(object):
         try:
             resp = self._client.apiv2().project().delete(project_pb2.ProjectServiceDeleteRequest(
                 project=self._uuid,
-            ))
+            ), headers=self._headers)
             self._project = resp.project
         except ConnectError as e:
             self._module.fail_json(
