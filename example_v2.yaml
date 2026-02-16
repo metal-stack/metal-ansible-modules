@@ -37,7 +37,7 @@
       metal_v2_project:
         name: test
         description: test project
-        tenant: CiQwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDESBWxvY2Fs@oidc
+        tenant: "{{ tenant.id }}"
         avatar_url: http://test
         # state: absent
       register: project
