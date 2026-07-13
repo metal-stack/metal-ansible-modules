@@ -17,6 +17,7 @@ V2_AUTH_SPEC = dict(
 
 V2_ANSIBLE_CI_MANAGED_KEY = "ci.metal-stack.io/manager"
 V2_ANSIBLE_CI_MANAGED_VALUE = "ansible"
+V2_ANSIBLE_CI_IDENTIFIER_KEY = "ci.metal-stack.io/id"
 
 
 def init_client_for_module(module):

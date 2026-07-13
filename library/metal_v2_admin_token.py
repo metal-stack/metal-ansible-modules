@@ -3,7 +3,7 @@
 
 from datetime import datetime
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, init_client_for_module, parse_delta
+from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, V2_ANSIBLE_CI_IDENTIFIER_KEY, init_client_for_module, parse_delta
 
 
 try:
@@ -38,11 +38,16 @@ description:
     - Requires metal-stack-api to be installed.
 
 options:
+    identifier:
+        description:
+            - An identifier for the token which must be unique for the user who creates the api token.
+              Otherwise, the module cannot figure out if the token was already created or not.
+              The identifier gets stored in the resource labels.
+        required: false
     description:
         description:
-            - The description of the token, which must be unique for the user who creates the api token.
-              Otherwise, the module cannot figure out if the token was already created or not.
-        required: true
+            - The description of the token.
+        required: false
     user:
         description:
             - The user to whom the created token will belong.
@@ -67,6 +72,9 @@ options:
         description:
             - The duration until this token expires. This field cannot be updated and is only used on token creation.
         required: false
+    labels:
+        - The labels of the token.
+    required: false
     state:
         description:
           - Assert the state of the token.
@@ -85,6 +93,7 @@ author:
 EXAMPLES = '''
 - name: create a token
   metal_v2_admin_token:
+    identifier: metal-bmc
     user: metal-bmc
     description: an infra component token
     permissions:
@@ -95,8 +104,7 @@ EXAMPLES = '''
 
 - name: revoke a token
   metal_v2_admin_token:
-    user: metal-bmc
-    description: an infra component token
+    identifier: metal-bmc
     state: absent
 '''
 
@@ -138,6 +146,7 @@ class Instance(object):
         self._token: token_pb2.Token = None
         self._uuid = None
         self._secret = None
+        self._identifier = module.params.get('identifier')
         self._user = module.params.get('user')
         self._description = module.params.get('description')
         self._expires = parse_delta(module.params.get(
@@ -147,6 +156,7 @@ class Instance(object):
         self._admin_role = module.params.get('admin_role')
         self._permissions = module.params.get('permissions')
         self._state = module.params.get('state')
+        self._labels = module.params.get('labels')
         client = init_client_for_module(module)
         self._client: apiclient.Client = client[0]
         self._headers: dict = client[1]
@@ -172,7 +182,14 @@ class Instance(object):
 
     def _find(self):
         r = admin_token_pb2.TokenServiceListRequest(
-            user=self._user
+            query=token_pb2.TokenQuery(
+                labels=common_pb2.Labels(
+                    labels=dict(
+                        V2_ANSIBLE_CI_IDENTIFIER_KEY=self._identifier,
+                        V2_ANSIBLE_CI_MANAGED_KEY=V2_ANSIBLE_CI_MANAGED_VALUE,
+                    ),
+                ),
+            ),
         )
 
         try:
@@ -213,11 +230,10 @@ class Instance(object):
             permissions=self._token.permissions,
         )
 
-        # TODO: tokens currently have no labels
-        # if not self._token.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
-        #     self._module.fail_json(
-        #         msg=f"refusing to update because label is not present on entity: {V2_ANSIBLE_CI_MANAGED_KEY}={V2_ANSIBLE_CI_MANAGED_VALUE}")
-        #     return
+        if not self._token.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
+            self._module.fail_json(
+                msg=f"refusing to update because label is not present on entity: {V2_ANSIBLE_CI_MANAGED_KEY}={V2_ANSIBLE_CI_MANAGED_VALUE}")
+            return
 
         if self._permissions:
             new_permissions = []
@@ -274,14 +290,19 @@ class Instance(object):
                     msg="request to metal-apiserver failed", error=str(e))
 
     def _create(self):
-        # TODO: tokens currently have no labels
-        # labels = {
-        #     V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
-        # }
+        labels = dict(
+            V2_ANSIBLE_CI_IDENTIFIER_KEY=self._identifier,
+            V2_ANSIBLE_CI_MANAGED_KEY=V2_ANSIBLE_CI_MANAGED_VALUE,
+        )
 
         r = token_pb2.TokenServiceCreateRequest(
-            description=self._description,
+            labels=common_pb2.Labels(
+                labels=labels
+            )
         )
+
+        if self._description:
+            r.description = self._description
 
         if self._expires:
             r.expires = self._expires
@@ -319,11 +340,10 @@ class Instance(object):
         self._uuid = self._token.uuid
 
     def _delete(self):
-        # TODO: tokens currently have no labels
-        # if not self._token.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
-        #     self._module.fail_json(
-        #         msg=f"refusing to delete because label is not present on entity: {V2_ANSIBLE_CI_MANAGED_KEY}={V2_ANSIBLE_CI_MANAGED_VALUE}")
-        #     return
+        if not self._token.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
+            self._module.fail_json(
+                msg=f"refusing to delete because label is not present on entity: {V2_ANSIBLE_CI_MANAGED_KEY}={V2_ANSIBLE_CI_MANAGED_VALUE}")
+            return
 
         try:
             self._client.adminv2().token().revoke(request=admin_token_pb2.TokenServiceRevokeRequest(
@@ -338,8 +358,9 @@ class Instance(object):
 def main():
     argument_spec = V2_AUTH_SPEC.copy()
     argument_spec.update(dict(
+        identifier=dict(type='str', required=True),
         user=dict(type='str', required=True),
-        description=dict(type='str', required=True),
+        description=dict(type='str', required=False),
         expires=dict(type='str', required=False),
         permissions=dict(type='list', required=False, elements='dict', options=dict(
             subject=dict(type='str', required=True),
@@ -354,6 +375,7 @@ def main():
             role=dict(type='str', required=True),
         )),
         admin_role=dict(type='str', required=False),
+        labels=dict(type='list', required=False),
         state=dict(type='str', choices=[
                    'present', 'absent'], default='present'),
     ))
