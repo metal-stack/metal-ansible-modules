@@ -1,3 +1,4 @@
+from inventory import metal
 import sys
 import unittest
 
@@ -7,7 +8,6 @@ from test import INVENTORY_PATH
 from metal_python import models
 
 sys.path.insert(0, INVENTORY_PATH)
-from inventory import metal
 
 test_timestamp = datetime.now()
 
@@ -102,11 +102,14 @@ class TestMetalDynamicInventory(unittest.TestCase):
                                destinationprefixes=[],
                                ips=["10.0.0.1"],
                                nat=False,
+                               nattypev2="none",
+                               networktypev2="child",
                                underlay=False,
                                private=True,
                                networktype="privateprimaryunshared",
                                networkid="bd94cb7f-1531-41ab-9171-fd479425804f",
                                prefixes=[],
+                               projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
                                vrf=5,
                            ),
                            models.V1MachineNetwork(
@@ -114,11 +117,14 @@ class TestMetalDynamicInventory(unittest.TestCase):
                                destinationprefixes=[],
                                ips=["1.2.3.4"],
                                nat=True,
+                               nattypev2="none",
+                               networktypev2="external",
                                underlay=False,
                                private=False,
                                networktype="external",
                                networkid="internet",
                                prefixes=[],
+                               projectid="",
                                vrf=10,
                            ),
                        ],
