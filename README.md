@@ -62,3 +62,13 @@ Then reference the roles in your playbooks like this:
   roles:
     - metal-ansible-modules
 ```
+
+## Develop
+
+Here is one way how you can execute the modules locally for development:
+
+- Start the [mini-lab](https://github.com/metal-stack/mini-lab)
+- In the mini-lab folder set dev-env with `eval $(make dev-env)`
+- Switch to this repository folder
+- Adjust the proper API version you develop against in the [Dockerfile](./Dockerfile.test)
+- Run `run-v2-test-example`
