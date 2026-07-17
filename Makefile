@@ -23,7 +23,7 @@ run-test-example:
 run-v2-test-example:
 	docker build -f Dockerfile.test --build-arg METAL_DEPLOYMENT_BASE_VERSION=$(METAL_DEPLOYMENT_BASE_VERSION) -t metal-ansible-modules .
 	docker run --rm -it \
-		-e METALCTLV2_API_TOKEN=$(METALCTLV2_API_TOKEN) \
+		-e METALCTLV2_API_TOKEN=$(shell kubectl --context kind-metal-control-plane get secret -n metal-control-plane metal-apiserver-admin-token -o jsonpath='{.data.admin_editor_token}' | base64 -d) \
 		-v $(PWD):/metal-modules:ro \
 		-w /metal-modules \
 		--network host \

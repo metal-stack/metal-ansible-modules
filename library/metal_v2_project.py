@@ -3,7 +3,7 @@
 
 from datetime import datetime
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, init_client_for_module
+from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, V2_ANSIBLE_CI_IDENTIFIER_KEY, init_client_for_module
 
 
 try:
@@ -37,11 +37,15 @@ description:
     - Requires metal-stack-api to be installed.
 
 options:
+    identifier:
+        description:
+            - A resource identifier for the created resource which must be unique within the managed resource scope for resources that have auto-generated uuids.
+              Otherwise, the module cannot figure out if the token was already created or not.
+              The identifier gets stored in the resource labels.
+        required: true
     name:
         description:
-            - >-
-              The name of the project, which must be unique in the tenant.
-              Otherwise, the module cannot figure out if the project was already created or not.
+            - The name of the project.
         required: true
     description:
         description:
@@ -77,6 +81,7 @@ author:
 EXAMPLES = '''
 - name: create a project
   metal_v2_project:
+    identifier: test
     name: my-project
     description: test project
     tenant: user@oidc
@@ -84,7 +89,7 @@ EXAMPLES = '''
 
 - name: delete a project
   metal_v2_project:
-    name: my-project
+    identifier: test
     state: absent
 '''
 
@@ -124,6 +129,7 @@ class Instance(object):
         self._project: project_pb2.Project = None
         self._uuid = None
         self._name = module.params['name']
+        self._identifier = module.params.get('identifier')
         self._description = module.params.get('description')
         self._avatar_url = module.params.get('avatar_url')
         self._tenant = module.params.get('tenant')
@@ -154,8 +160,14 @@ class Instance(object):
 
     def _find(self):
         r = project_pb2.ProjectServiceListRequest(
-            name=self._name,
-            tenant=self._tenant,
+            query=project_pb2.ProjectQuery(
+                labels=common_pb2.Labels(
+                    labels={
+                        V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
+                        V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
+                    },
+                ),
+            ),
         )
 
         try:
@@ -183,29 +195,31 @@ class Instance(object):
             project=self._uuid,
             update_meta=common_pb2.UpdateMeta(
                 locking_strategy=common_pb2.OPTIMISTIC_LOCKING_STRATEGY_CLIENT,
-                updated_at=datetime.now(),
+                updated_at=self._project.meta.updated_at,
             ),
         )
 
-        if not self._project.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
-            self._module.fail_json(
-                msg=f"refusing to update because label is not present on entity: {V2_ANSIBLE_CI_MANAGED_KEY}={V2_ANSIBLE_CI_MANAGED_VALUE}")
-            return
-
+        if self._name and self._project.name != self._name:
+            self.changed = True
+            r.name = self._name
         if self._description and self._project.description != self._description:
             self.changed = True
             r.description = self._description
-
         if self._avatar_url and self._project.avatar_url != self._avatar_url:
             self.changed = True
             r.avatar_url = self._avatar_url
 
         if self._labels:
-            self._labels[V2_ANSIBLE_CI_MANAGED_KEY] = V2_ANSIBLE_CI_MANAGED_VALUE
+            labels = self._labels | {
+                V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
+                V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
+            }
 
-            if self._project.meta.labels != self._labels:
+            if self._project.meta.labels != labels:
                 self.changed = True
-                r.labels = self._labels
+                r.labels.CopyFrom(common_pb2.UpdateLabels(
+                    replace=common_pb2.Labels(labels=labels)
+                ))
 
         if self.changed:
             try:
@@ -216,7 +230,9 @@ class Instance(object):
                     msg="request to metal-apiserver failed", error=str(e))
 
     def _create(self):
-        labels = {
+        labels = self._labels if self._labels else dict()
+        labels = labels | {
+            V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
             V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
         }
 
@@ -229,8 +245,6 @@ class Instance(object):
 
         if self._avatar_url:
             r.avatar_url = self._avatar_url
-        if self._labels:
-            r.labels = common_pb2.Labels(labels=self._labels | labels)
 
         try:
             resp = self._client.apiv2().project().create(request=r, headers=self._headers)
@@ -242,11 +256,6 @@ class Instance(object):
         self._uuid = self._project.uuid
 
     def _delete(self):
-        if not self._project.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
-            self._module.fail_json(
-                msg=f"refusing to delete because label is not present on entity: {V2_ANSIBLE_CI_MANAGED_KEY}={V2_ANSIBLE_CI_MANAGED_VALUE}")
-            return
-
         try:
             resp = self._client.apiv2().project().delete(project_pb2.ProjectServiceDeleteRequest(
                 project=self._uuid,
@@ -260,11 +269,12 @@ class Instance(object):
 def main():
     argument_spec = V2_AUTH_SPEC.copy()
     argument_spec.update(dict(
+        identifier=dict(type='str', required=True),
         name=dict(type='str', required=True),
         tenant=dict(type='str', required=True),
         description=dict(type='str', required=True),
         avatar_url=dict(type='str', required=False),
-        labels=dict(type='list', required=False),
+        labels=dict(type='dict', required=False),
         state=dict(type='str', choices=[
                    'present', 'absent'], default='present'),
     ))

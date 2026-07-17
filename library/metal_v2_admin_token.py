@@ -40,10 +40,10 @@ description:
 options:
     identifier:
         description:
-            - An identifier for the token which must be unique for the user who creates the api token.
+            - A resource identifier for the created resource which must be unique within the managed resource scope for resources that have auto-generated uuids.
               Otherwise, the module cannot figure out if the token was already created or not.
               The identifier gets stored in the resource labels.
-        required: false
+        required: true
     description:
         description:
             - The description of the token.
@@ -184,10 +184,10 @@ class Instance(object):
         r = admin_token_pb2.TokenServiceListRequest(
             query=token_pb2.TokenQuery(
                 labels=common_pb2.Labels(
-                    labels=dict(
-                        V2_ANSIBLE_CI_IDENTIFIER_KEY=self._identifier,
-                        V2_ANSIBLE_CI_MANAGED_KEY=V2_ANSIBLE_CI_MANAGED_VALUE,
-                    ),
+                    labels={
+                        V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
+                        V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
+                    },
                 ),
             ),
         )
@@ -199,14 +199,7 @@ class Instance(object):
                 msg="request to metal-apiserver failed", error=str(e))
             return
 
-        tokens = []
-
-        for token in resp.tokens:
-            if token.token_type != token_pb2.TOKEN_TYPE_API:
-                continue
-
-            if token.description == self._description:
-                tokens.append(token)
+        tokens = resp.tokens
 
         if not tokens:
             return
@@ -224,16 +217,15 @@ class Instance(object):
             uuid=self._uuid,
             update_meta=common_pb2.UpdateMeta(
                 locking_strategy=common_pb2.OPTIMISTIC_LOCKING_STRATEGY_CLIENT,
-                updated_at=datetime.now(),
+                updated_at=self._token.meta.updated_at,
             ),
             # if we do not send permissions, they will be gone in case they do not change (bug?):
             permissions=self._token.permissions,
         )
 
-        if not self._token.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
-            self._module.fail_json(
-                msg=f"refusing to update because label is not present on entity: {V2_ANSIBLE_CI_MANAGED_KEY}={V2_ANSIBLE_CI_MANAGED_VALUE}")
-            return
+        if self._description and self._token.description != self._description:
+            self.changed = True
+            r.description = self._description
 
         if self._permissions:
             new_permissions = []
@@ -274,26 +266,33 @@ class Instance(object):
                 self.changed = True
                 r.tenant_roles.update(new_roles)
 
-        # if self._labels:
-        #     # self._labels[V2_ANSIBLE_CI_MANAGED_KEY] = V2_ANSIBLE_CI_MANAGED_VALUE
+        if self._labels:
+            labels = self._labels | {
+                V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
+                V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
+            }
 
-        #     if self._token.meta.labels != self._labels:
-        #         self.changed = True
-        #         r.labels = self._labels
+            if self._token.meta.labels != labels:
+                self.changed = True
+                r.labels.CopyFrom(common_pb2.UpdateLabels(
+                    replace=common_pb2.Labels(labels=labels)
+                ))
 
         if self.changed:
             try:
                 resp = self._client.apiv2().token().update(request=r, headers=self._headers)
                 self._token = resp.token
+
             except ConnectError as e:
                 self._module.fail_json(
                     msg="request to metal-apiserver failed", error=str(e))
 
     def _create(self):
-        labels = dict(
-            V2_ANSIBLE_CI_IDENTIFIER_KEY=self._identifier,
-            V2_ANSIBLE_CI_MANAGED_KEY=V2_ANSIBLE_CI_MANAGED_VALUE,
-        )
+        labels = self._labels if self._labels else dict()
+        labels = labels | {
+            V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
+            V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
+        }
 
         r = token_pb2.TokenServiceCreateRequest(
             labels=common_pb2.Labels(
@@ -333,6 +332,7 @@ class Instance(object):
             ), headers=self._headers)
             self._token = resp.token
             self._secret = resp.secret
+
         except ConnectError as e:
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
@@ -340,16 +340,12 @@ class Instance(object):
         self._uuid = self._token.uuid
 
     def _delete(self):
-        if not self._token.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
-            self._module.fail_json(
-                msg=f"refusing to delete because label is not present on entity: {V2_ANSIBLE_CI_MANAGED_KEY}={V2_ANSIBLE_CI_MANAGED_VALUE}")
-            return
-
         try:
             self._client.adminv2().token().revoke(request=admin_token_pb2.TokenServiceRevokeRequest(
                 user=self._user,
                 uuid=self._uuid,
             ), headers=self._headers)
+
         except ConnectError as e:
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
