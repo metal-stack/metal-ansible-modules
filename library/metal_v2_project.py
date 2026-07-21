@@ -60,8 +60,9 @@ options:
             - The tenant of the project.
         required: false
     labels:
-        description:
-            - The labels of the project.
+        - The labels of the project.
+        - >-
+          Set to empty dict in order to clean existing.
         required: false
     state:
         description:
@@ -112,6 +113,7 @@ project:
             createdAt: '2025-01-01T12:00:00.00000000Z'
             labels:
                 labels:
+                    ci.metal-stack.io/id: test
                     ci.metal-stack.io/manager: ansible
         name: test
         tenant: user@oidc
@@ -209,13 +211,18 @@ class Instance(object):
             self.changed = True
             r.avatar_url = self._avatar_url
 
-        if self._labels:
+        if self._tenant and self._project.tenant != self._tenant:
+            self._module.fail_json(
+                msg=f"project belongs to tenant {self._project.tenant}, it cannot be changed to tenant {self._tenant}")
+            return
+
+        if self._labels != None:
             labels = self._labels | {
                 V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
                 V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
             }
 
-            if self._project.meta.labels != labels:
+            if self._project.meta.labels.labels != labels:
                 self.changed = True
                 r.labels.CopyFrom(common_pb2.UpdateLabels(
                     replace=common_pb2.Labels(labels=labels)

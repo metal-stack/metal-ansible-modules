@@ -74,6 +74,8 @@ options:
         required: false
     labels:
         - The labels of the token.
+        - >-
+          Set to empty dict in order to clean existing.
     required: false
     state:
         description:
@@ -215,12 +217,7 @@ class Instance(object):
     def _update(self):
         r = token_pb2.TokenServiceUpdateRequest(
             uuid=self._uuid,
-            update_meta=common_pb2.UpdateMeta(
-                locking_strategy=common_pb2.OPTIMISTIC_LOCKING_STRATEGY_CLIENT,
-                updated_at=self._token.meta.updated_at,
-            ),
-            # if we do not send permissions, they will be gone in case they do not change (bug?):
-            permissions=self._token.permissions,
+            update_meta=common_pb2.UpdateMeta(),
         )
 
         if self._description and self._token.description != self._description:
@@ -228,21 +225,85 @@ class Instance(object):
             r.description = self._description
 
         if self._permissions:
+            old_methods = []
+            for perm in self._token.permissions:
+                old_methods.extend(perm.methods)
             new_permissions = []
+            new_methods = []
 
             for permission in self._permissions:
-                new_permissions.append(token_pb2.MethodPermission(
-                    subject=permission.get("subject"),
-                    methods=permission.get("methods", []),
-                ))
+                if permission.get("self"):
+                    methods = permission.get("self").get("methods", [])
+                    new_permissions.append(token_pb2.PermissionsByVisibility(
+                        self=token_pb2.SelfPermissions(
+                            methods=methods
+                        ),
+                    ))
+                    new_methods.extend(methods)
+                if permission.get("infra"):
+                    methods = permission.get("infra").get("methods", [])
+                    new_permissions.append(token_pb2.PermissionsByVisibility(
+                        infra=token_pb2.InfraPermissions(
+                            methods=methods,
+                        ),
+                    ))
+                    new_methods.extend(methods)
+                if permission.get("admin"):
+                    methods = permission.get("admin").get("methods", [])
+                    new_permissions.append(token_pb2.PermissionsByVisibility(
+                        admin=token_pb2.AdminPermissions(
+                            methods=methods,
+                        ),
+                    ))
+                    new_methods.extend(methods)
+                if permission.get("public"):
+                    methods = permission.get("public").get("methods", [])
+                    new_permissions.append(token_pb2.PermissionsByVisibility(
+                        public=token_pb2.PublicPermissions(
+                            methods=methods,
+                        ),
+                    ))
+                    new_methods.extend(methods)
+                if permission.get("project"):
+                    methods = permission.get("project").get("methods", [])
+                    new_permissions.append(token_pb2.PermissionsByVisibility(
+                        project=token_pb2.ProjectPermissions(
+                            project=permission.get("project").get("project"),
+                            methods=methods,
+                        ),
+                    ))
+                    new_methods.extend(methods)
+                if permission.get("tenant"):
+                    methods = permission.get("tenant").get("methods", [])
+                    new_permissions.append(token_pb2.PermissionsByVisibility(
+                        tenant=token_pb2.TenantPermissions(
+                            login=permission.get("tenant").get("login"),
+                            methods=methods,
+                        ),
+                    ))
+                    new_methods.extend(methods)
+                if permission.get("machine"):
+                    methods = permission.get("machine").get("methods", [])
+                    new_permissions.append(token_pb2.PermissionsByVisibility(
+                        machine=token_pb2.MachinePermissions(
+                            uuid=permission.get("machine").get("uuid"),
+                            methods=methods,
+                        ),
+                    ))
+                    new_methods.extend(methods)
 
-            if new_permissions != self._token.permissions:
+            if set(old_methods) != set(new_methods):
                 self.changed = True
                 r.permissions.extend(new_permissions)
 
         if self._admin_role and common_pb2.AdminRole.Value(self._admin_role) != self._token.admin_role:
             self.changed = True
             r.admin_role = self._admin_role
+
+        if self._user and self._token.user != self._user:
+            self._module.fail_json(
+                msg=f"token belongs to user {self._token.user}, it cannot be changed to user {self._user}")
+            return
 
         if self._project_roles:
             new_roles = {}
@@ -266,13 +327,13 @@ class Instance(object):
                 self.changed = True
                 r.tenant_roles.update(new_roles)
 
-        if self._labels:
+        if self._labels != None:
             labels = self._labels | {
                 V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
                 V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
             }
 
-            if self._token.meta.labels != labels:
+            if self._token.meta.labels.labels != labels:
                 self.changed = True
                 r.labels.CopyFrom(common_pb2.UpdateLabels(
                     replace=common_pb2.Labels(labels=labels)
@@ -307,10 +368,51 @@ class Instance(object):
             r.expires = self._expires
 
         for permission in self._permissions:
-            r.permissions.append(token_pb2.MethodPermission(
-                subject=permission.get("subject"),
-                methods=permission.get("methods", []),
-            ))
+            if permission.get("self"):
+                r.permissions.append(token_pb2.PermissionsByVisibility(
+                    self=token_pb2.SelfPermissions(
+                        methods=permission.get("self").get("methods", [])
+                    ),
+                ))
+            if permission.get("infra"):
+                r.permissions.append(token_pb2.PermissionsByVisibility(
+                    infra=token_pb2.InfraPermissions(
+                        methods=permission.get("infra").get("methods", [])
+                    ),
+                ))
+            if permission.get("admin"):
+                r.permissions.append(token_pb2.PermissionsByVisibility(
+                    admin=token_pb2.AdminPermissions(
+                        methods=permission.get("admin").get("methods", [])
+                    ),
+                ))
+            if permission.get("public"):
+                r.permissions.append(token_pb2.PermissionsByVisibility(
+                    public=token_pb2.PublicPermissions(
+                        methods=permission.get("public").get("methods", [])
+                    ),
+                ))
+            if permission.get("project"):
+                r.permissions.append(token_pb2.PermissionsByVisibility(
+                    project=token_pb2.ProjectPermissions(
+                        project=permission.get("project").get("project"),
+                        methods=permission.get("project").get("methods", [])
+                    ),
+                ))
+            if permission.get("tenant"):
+                r.permissions.append(token_pb2.PermissionsByVisibility(
+                    tenant=token_pb2.TenantPermissions(
+                        login=permission.get("tenant").get("login"),
+                        methods=permission.get("tenant").get("methods", [])
+                    ),
+                ))
+            if permission.get("machine"):
+                r.permissions.append(token_pb2.PermissionsByVisibility(
+                    machine=token_pb2.MachinePermissions(
+                        uuid=permission.get("machine").get("uuid"),
+                        methods=permission.get("machine").get("methods", [])
+                    ),
+                ))
 
         if self._admin_role and common_pb2.AdminRole.Value(self._admin_role):
             r.admin_role = self._admin_role
@@ -359,8 +461,20 @@ def main():
         description=dict(type='str', required=False),
         expires=dict(type='str', required=False),
         permissions=dict(type='list', required=False, elements='dict', options=dict(
-            subject=dict(type='str', required=True),
-            methods=dict(type='list', elements='str'),
+            self=dict(type='dict', options=dict(
+                methods=dict(type='list', elements='str'),)),
+            admin=dict(type='dict', options=dict(
+                methods=dict(type='list', elements='str'),)),
+            infra=dict(type='dict', options=dict(
+                methods=dict(type='list', elements='str'),)),
+            public=dict(type='dict', options=dict(
+                methods=dict(type='list', elements='str'),)),
+            project=dict(type='dict', options=dict(
+                methods=dict(type='list', elements='str'), project=dict(type='str', required=True),)),
+            tenant=dict(type='dict', options=dict(
+                methods=dict(type='list', elements='str'), login=dict(type='str', required=True),)),
+            machine=dict(type='dict', options=dict(
+                methods=dict(type='list', elements='str'), uuid=dict(type='str', required=True),)),
         )),
         project_roles=dict(type='list', required=False, elements='dict', options=dict(
             id=dict(type='str', required=True),
@@ -371,7 +485,7 @@ def main():
             role=dict(type='str', required=True),
         )),
         admin_role=dict(type='str', required=False),
-        labels=dict(type='list', required=False),
+        labels=dict(type='dict', required=False),
         state=dict(type='str', choices=[
                    'present', 'absent'], default='present'),
     ))

@@ -63,6 +63,8 @@ options:
     labels:
         description:
             - The labels of the tenant.
+            - >-
+              Set to empty dict in order to clean existing.
         required: false
     state:
         description:
@@ -110,6 +112,7 @@ tenant:
         createdAt: '2025-01-01T12:00:00.00000000Z'
         labels:
             labels:
+                ci.metal-stack.io/id: test
                 ci.metal-stack.io/manager: ansible
     name: test
 '''
@@ -180,7 +183,7 @@ class Instance(object):
 
         if len(tenants) > 1:
             self._module.fail_json(
-                msg="tenant name is not unique, which is required when "
+                msg="tenant identifier label is not unique, which is required when "
                     "using this module", name=self._name)
         elif len(tenants) == 1:
             self._tenant = tenants[0]
@@ -211,13 +214,13 @@ class Instance(object):
             self.changed = True
             r.email = self._email
 
-        if self._labels:
+        if self._labels != None:
             labels = self._labels | {
                 V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
                 V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
             }
 
-            if self._tenant.meta.labels != labels:
+            if self._tenant.meta.labels.labels != labels:
                 self.changed = True
                 r.labels.CopyFrom(common_pb2.UpdateLabels(
                     replace=common_pb2.Labels(labels=labels)
