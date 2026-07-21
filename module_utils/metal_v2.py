@@ -17,6 +17,7 @@ V2_AUTH_SPEC = dict(
 
 V2_ANSIBLE_CI_MANAGED_KEY = "ci.metal-stack.io/manager"
 V2_ANSIBLE_CI_MANAGED_VALUE = "ansible"
+V2_ANSIBLE_CI_IDENTIFIER_KEY = "ci.metal-stack.io/id"
 
 
 def init_client_for_module(module):
@@ -25,15 +26,15 @@ def init_client_for_module(module):
 
     url = module.params.get("api_url", None)
     if not url:
-        url = os.environ.get("METALCTLV2_API_URL")
+        url = os.environ.get("METAL_APIV2_URL")
     if not url:
-        raise Exception("api_url or METALCTLV2_API_URL must be provided")
+        raise Exception("api_url or METAL_APIV2_URL must be provided")
 
     token = module.params.get("api_token", None)
     if not token:
-        token = os.environ.get("METALCTLV2_API_TOKEN")
+        token = os.environ.get("METAL_APIV2_TOKEN")
     if not token:
-        raise Exception("api_token or METALCTLV2_API_TOKEN must be provided")
+        raise Exception("api_token or METAL_APIV2_TOKEN must be provided")
 
     timeout = module.params.get("api_timeout", None)
 

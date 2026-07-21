@@ -1,9 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from datetime import datetime
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, init_client_for_module
+from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, V2_ANSIBLE_CI_IDENTIFIER_KEY, init_client_for_module
 
 
 try:
@@ -37,11 +36,15 @@ description:
     - Requires metal-stack-api to be installed.
 
 options:
+    identifier:
+        description:
+            - A resource identifier for the created resource which must be unique within the managed resource scope for resources that have auto-generated uuids.
+              Otherwise, the module cannot figure out if the token was already created or not.
+              The identifier gets stored in the resource labels.
+        required: true
     name:
         description:
-            - >-
-              The name of the tenant, which must be unique for the token user that creates this tenant.
-              Otherwise, the module cannot figure out if the tenant was already created or not.
+            - The name of the tenant.
         required: true
     description:
         description:
@@ -58,6 +61,8 @@ options:
     labels:
         description:
             - The labels of the tenant.
+            - >-
+              Set to empty dict in order to clean existing.
         required: false
     state:
         description:
@@ -77,14 +82,15 @@ author:
 EXAMPLES = '''
 - name: create a tenant
   metal_v2_tenant:
-    name: my-tenant
+    identifier: test
+    name: test
     description: test tenant
     avatar_url: http://test
     email: test@test.com
 
 - name: delete a tenant
   metal_v2_tenant:
-    name: my-tenant
+    identifier: test
     state: absent
 '''
 
@@ -105,6 +111,7 @@ tenant:
         createdAt: '2025-01-01T12:00:00.00000000Z'
         labels:
             labels:
+                ci.metal-stack.io/id: test
                 ci.metal-stack.io/manager: ansible
     name: test
 '''
@@ -120,6 +127,7 @@ class Instance(object):
         self._tenant: tenant_pb2.Tenant = None
         self._login = None
         self._name = module.params['name']
+        self._identifier = module.params.get('identifier')
         self._description = module.params.get('description')
         self._avatar_url = module.params.get('avatar_url')
         self._email = module.params.get('email')
@@ -150,7 +158,14 @@ class Instance(object):
 
     def _find(self):
         r = tenant_pb2.TenantServiceListRequest(
-            name=self._name,
+            query=tenant_pb2.TenantQuery(
+                labels=common_pb2.Labels(
+                    labels={
+                        V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
+                        V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
+                    },
+                ),
+            )
         )
 
         try:
@@ -167,7 +182,7 @@ class Instance(object):
 
         if len(tenants) > 1:
             self._module.fail_json(
-                msg="tenant name is not unique, which is required when "
+                msg="tenant identifier label is not unique, which is required when "
                     "using this module", name=self._name)
         elif len(tenants) == 1:
             self._tenant = tenants[0]
@@ -178,33 +193,34 @@ class Instance(object):
             login=self._login,
             update_meta=common_pb2.UpdateMeta(
                 locking_strategy=common_pb2.OPTIMISTIC_LOCKING_STRATEGY_CLIENT,
-                updated_at=datetime.now(),
+                updated_at=self._tenant.meta.updated_at,
             ),
         )
 
-        if not self._tenant.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
-            self._module.fail_json(
-                msg=f"refusing to update because label is not present on entity: {V2_ANSIBLE_CI_MANAGED_KEY}={V2_ANSIBLE_CI_MANAGED_VALUE}")
-            return
-
+        if self._name and self._tenant.name != self._name:
+            self.changed = True
+            r.name = self._name
         if self._description and self._tenant.description != self._description:
             self.changed = True
             r.description = self._description
-
         if self._avatar_url and self._tenant.avatar_url != self._avatar_url:
             self.changed = True
             r.avatar_url = self._avatar_url
-
         if self._email and self._tenant.email != self._email:
             self.changed = True
             r.email = self._email
 
-        if self._labels:
-            self._labels[V2_ANSIBLE_CI_MANAGED_KEY] = V2_ANSIBLE_CI_MANAGED_VALUE
+        if self._labels != None:
+            labels = self._labels | {
+                V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
+                V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
+            }
 
-            if self._tenant.meta.labels != self._labels:
+            if self._tenant.meta.labels.labels != labels:
                 self.changed = True
-                r.labels = self._labels
+                r.labels.CopyFrom(common_pb2.UpdateLabels(
+                    replace=common_pb2.Labels(labels=labels)
+                ))
 
         if self.changed:
             try:
@@ -215,7 +231,9 @@ class Instance(object):
                     msg="request to metal-apiserver failed", error=str(e))
 
     def _create(self):
-        labels = {
+        labels = self._labels if self._labels else dict()
+        labels = labels | {
+            V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
             V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
         }
 
@@ -229,8 +247,6 @@ class Instance(object):
             r.avatar_url = self._avatar_url
         if self._email:
             r.email = self._email
-        if self._labels:
-            r.labels = common_pb2.Labels(labels=self._labels | labels)
 
         try:
             resp = self._client.apiv2().tenant().create(request=r, headers=self._headers)
@@ -242,15 +258,10 @@ class Instance(object):
         self._login = self._tenant.login
 
     def _delete(self):
-        if not self._tenant.meta.labels.labels.get(V2_ANSIBLE_CI_MANAGED_KEY, "") == V2_ANSIBLE_CI_MANAGED_VALUE:
-            self._module.fail_json(
-                msg=f"refusing to delete because label is not present on entity: {V2_ANSIBLE_CI_MANAGED_KEY}={V2_ANSIBLE_CI_MANAGED_VALUE}")
-            return
-
         try:
             resp = self._client.apiv2().tenant().delete(tenant_pb2.TenantServiceDeleteRequest(
                 login=self._login,
-            ))
+            ), headers=self._headers)
             self._tenant = resp.tenant
         except ConnectError as e:
             self._module.fail_json(
@@ -260,11 +271,12 @@ class Instance(object):
 def main():
     argument_spec = V2_AUTH_SPEC.copy()
     argument_spec.update(dict(
+        identifier=dict(type='str', required=True),
         name=dict(type='str', required=True),
         description=dict(type='str', required=True),
         avatar_url=dict(type='str', required=False),
         email=dict(type='str', required=False),
-        labels=dict(type='list', required=False),
+        labels=dict(type='dict', required=False),
         state=dict(type='str', choices=[
                    'present', 'absent'], default='present'),
     ))
