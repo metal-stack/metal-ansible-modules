@@ -39,9 +39,10 @@ description:
 options:
     identifier:
         description:
-            - A resource identifier for the created resource which must be unique within the managed resource scope for resources that have auto-generated uuids.
-              Otherwise, the module cannot figure out if the token was already created or not.
+            - A resource identifier for resources that have auto-generated uuids.
               The identifier gets stored in the resource labels.
+              With this, the module can figure out if the resource already exists using the identifier label.
+              If multiple resources with the identifier label are found, the module acts on the latest created resource.
         required: true
     name:
         description:
@@ -61,8 +62,7 @@ options:
         required: false
     labels:
         - The labels of the project.
-        - >-
-          Set to empty dict in order to clean existing.
+        - Set to empty dict in order to clean existing.
         required: false
     state:
         description:
@@ -180,17 +180,21 @@ class Instance(object):
             return
 
         projects = resp.projects
-
         if projects is None:
             return
 
-        if len(projects) > 1:
-            self._module.fail_json(
-                msg="project name is not unique within the tenant, which is required when "
-                    "using this module", name=self._name)
-        elif len(projects) == 1:
-            self._project = projects[0]
-            self._uuid = self._project.uuid
+        latest_created = None
+
+        for project in projects:
+            if latest_created is None:
+                latest_created = project
+                continue
+
+            if project.meta.created_at.ToDatetime() > latest_created.meta.created_at.ToDatetime():
+                latest_created = project
+
+        self._project = latest_created
+        self._uuid = self._project.uuid
 
     def _update(self):
         r = project_pb2.ProjectServiceUpdateRequest(

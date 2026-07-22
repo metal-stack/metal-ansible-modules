@@ -14,19 +14,19 @@
         name: test
         description: test tenant
         avatar_url: http://test
-        email: test@test.com
+        email: test@test2.com
         # state: absent
       register: tenant
 
-    - name: Create tenant
-      metal_v2_tenant:
-        identifier: test2
-        name: test2
-        description: test tenant2
-        avatar_url: http://test2
-        email: test@test.com2
-        labels:
-          a: b
+    # - name: Create tenant
+    #   metal_v2_tenant:
+    #     identifier: test
+    #     name: test2
+    #     description: test tenant2
+    #     avatar_url: http://test2
+    #     email: test@test.com2
+    #     labels:
+    #       a: b
         # state: absent
 
     - name: Create project

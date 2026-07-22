@@ -40,9 +40,10 @@ description:
 options:
     identifier:
         description:
-            - A resource identifier for the created resource which must be unique within the managed resource scope for resources that have auto-generated uuids.
-              Otherwise, the module cannot figure out if the token was already created or not.
+            - A resource identifier for resources that have auto-generated uuids.
               The identifier gets stored in the resource labels.
+              With this, the module can figure out if the resource already exists using the identifier label.
+              If multiple resources with the identifier label are found, the module acts on the latest created resource.
         required: true
     description:
         description:
@@ -74,8 +75,7 @@ options:
         required: false
     labels:
         - The labels of the token.
-        - >-
-          Set to empty dict in order to clean existing.
+        - Set to empty dict in order to clean existing.
     required: false
     state:
         description:
@@ -202,17 +202,21 @@ class Instance(object):
             return
 
         tokens = resp.tokens
-
         if not tokens:
             return
 
-        if len(tokens) > 1:
-            self._module.fail_json(
-                msg="token description is not unique within the user, which is required when "
-                    "using this module", name=self._name)
-        elif len(tokens) == 1:
-            self._token = tokens[0]
-            self._uuid = self._token.uuid
+        latest_created = None
+
+        for token in tokens:
+            if latest_created is None:
+                latest_created = token
+                continue
+
+            if token.meta.created_at.ToDatetime() > latest_created.meta.created_at.ToDatetime():
+                latest_created = token
+
+        self._token = latest_created
+        self._uuid = self._token.uuid
 
     def _update(self):
         r = token_pb2.TokenServiceUpdateRequest(

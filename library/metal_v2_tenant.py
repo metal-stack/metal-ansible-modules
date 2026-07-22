@@ -38,9 +38,10 @@ description:
 options:
     identifier:
         description:
-            - A resource identifier for the created resource which must be unique within the managed resource scope for resources that have auto-generated uuids.
-              Otherwise, the module cannot figure out if the token was already created or not.
+            - A resource identifier for resources that have auto-generated uuids.
               The identifier gets stored in the resource labels.
+              With this, the module can figure out if the resource already exists using the identifier label.
+              If multiple resources with the identifier label are found, the module acts on the latest created resource.
         required: true
     name:
         description:
@@ -61,8 +62,7 @@ options:
     labels:
         description:
             - The labels of the tenant.
-            - >-
-              Set to empty dict in order to clean existing.
+            - Set to empty dict in order to clean existing.
         required: false
     state:
         description:
@@ -176,17 +176,21 @@ class Instance(object):
             return
 
         tenants = resp.tenants
-
         if tenants is None:
             return
 
-        if len(tenants) > 1:
-            self._module.fail_json(
-                msg="tenant identifier label is not unique, which is required when "
-                    "using this module", name=self._name)
-        elif len(tenants) == 1:
-            self._tenant = tenants[0]
-            self._login = self._tenant.login
+        latest_created = None
+
+        for tenant in tenants:
+            if latest_created is None:
+                latest_created = tenant
+                continue
+
+            if tenant.meta.created_at.ToDatetime() > latest_created.meta.created_at.ToDatetime():
+                latest_created = tenant
+
+        self._tenant = latest_created
+        self._login = self._tenant.login
 
     def _update(self):
         r = tenant_pb2.TenantServiceUpdateRequest(
