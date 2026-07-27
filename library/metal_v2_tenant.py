@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, V2_ANSIBLE_CI_IDENTIFIER_KEY, init_client_for_module
+from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, V2_ANSIBLE_CI_IDENTIFIER_KEY, init_client_for_module, get_latest_resource
 
 
 try:
@@ -41,8 +41,13 @@ options:
             - A resource identifier for resources that have auto-generated uuids.
               The identifier gets stored in the resource labels.
               With this, the module can figure out if the resource already exists using the identifier label.
-              If multiple resources with the identifier label are found, the module acts on the latest created resource.
+              If multiple resources with the same identifier label are found, the module will throw an error.
         required: true
+    use_latest_identifier:
+        description:
+            - If set to true and multiple resources with the same identifier label are found, the module acts on the latest created resource.
+        required: true
+        default: false
     name:
         description:
             - The name of the tenant.
@@ -128,6 +133,8 @@ class Instance(object):
         self._login = None
         self._name = module.params['name']
         self._identifier = module.params.get('identifier')
+        self._use_latest_identifier = module.params.get(
+            'use_latest_identifier')
         self._description = module.params.get('description')
         self._avatar_url = module.params.get('avatar_url')
         self._email = module.params.get('email')
@@ -175,22 +182,9 @@ class Instance(object):
                 msg="request to metal-apiserver failed", error=str(e))
             return
 
-        tenants = resp.tenants
-        if tenants is None:
-            return
-
-        latest_created = None
-
-        for tenant in tenants:
-            if latest_created is None:
-                latest_created = tenant
-                continue
-
-            if tenant.meta.created_at.ToDatetime() > latest_created.meta.created_at.ToDatetime():
-                latest_created = tenant
-
-        self._tenant = latest_created
-        self._login = self._tenant.login
+        self._tenant = get_latest_resource(self, resp.tenants)
+        if self._tenant:
+            self._login = self._tenant.login
 
     def _update(self):
         r = tenant_pb2.TenantServiceUpdateRequest(
@@ -276,6 +270,7 @@ def main():
     argument_spec = V2_AUTH_SPEC.copy()
     argument_spec.update(dict(
         identifier=dict(type='str', required=True),
+        use_latest_identifier=dict(type='bool', default=False),
         name=dict(type='str', required=True),
         description=dict(type='str', required=True),
         avatar_url=dict(type='str', required=False),

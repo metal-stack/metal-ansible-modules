@@ -1,9 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from datetime import datetime
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, V2_ANSIBLE_CI_IDENTIFIER_KEY, init_client_for_module, parse_delta
+from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, V2_ANSIBLE_CI_IDENTIFIER_KEY, init_client_for_module, parse_delta, get_latest_resource
 
 
 try:
@@ -42,8 +41,13 @@ options:
             - A resource identifier for resources that have auto-generated uuids.
               The identifier gets stored in the resource labels.
               With this, the module can figure out if the resource already exists using the identifier label.
-              If multiple resources with the identifier label are found, the module acts on the latest created resource.
+              If multiple resources with the same identifier label are found, the module will throw an error.
         required: true
+    use_latest_identifier:
+        description:
+            - If set to true and multiple resources with the same identifier label are found, the module acts on the latest created resource.
+        required: true
+        default: false
     description:
         description:
             - The description of the token.
@@ -146,6 +150,8 @@ class Instance(object):
         self._secret = None
         self._description = module.params.get('description')
         self._identifier = module.params.get('identifier')
+        self._use_latest_identifier = module.params.get(
+            'use_latest_identifier')
         self._expires = parse_delta(module.params.get(
             'expires')) if module.params.get('expires') else None
         self._project_roles = module.params.get('project_roles')
@@ -196,22 +202,9 @@ class Instance(object):
                 msg="request to metal-apiserver failed", error=str(e))
             return
 
-        tokens = resp.tokens
-        if not tokens:
-            return
-
-        latest_created = None
-
-        for token in tokens:
-            if latest_created is None:
-                latest_created = token
-                continue
-
-            if token.meta.created_at.ToDatetime() > latest_created.meta.created_at.ToDatetime():
-                latest_created = token
-
-        self._token = latest_created
-        self._uuid = self._token.uuid
+        self._token = get_latest_resource(self, resp.tokens)
+        if self._token:
+            self._uuid = self._token.uuid
 
     def _update(self):
         r = token_pb2.TokenServiceUpdateRequest(
@@ -443,6 +436,7 @@ def main():
     argument_spec = V2_AUTH_SPEC.copy()
     argument_spec.update(dict(
         identifier=dict(type='str', required=True),
+        use_latest_identifier=dict(type='bool', default=False),
         description=dict(type='str', required=False),
         expires=dict(type='str', required=False),
         permissions=dict(type='list', required=False, elements='dict', options=dict(

@@ -27,10 +27,10 @@
     #     email: test@test.com2
     #     labels:
     #       a: b
-        # state: absent
+    #     state: absent
 
     - name: Create project
-      metal_v2_project:
+      metal_v2_admin_project:
         identifier: test
         name: test2
         description: test project2
