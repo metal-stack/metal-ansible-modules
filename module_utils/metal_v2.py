@@ -1,6 +1,9 @@
 import os
 import re
+from abc import ABC, abstractmethod
 from datetime import timedelta
+
+from ansible.module_utils.basic import AnsibleModule
 
 try:
     from metalstack.client import client as apiclient
@@ -94,3 +97,107 @@ def get_latest_resource(self, resources):
         return
 
     return resources[0]
+
+
+COMMON_ARG_SPEC = dict(
+    identifier=dict(type='str', required=True),
+    use_latest_identifier=dict(type='bool', default=False),
+    labels=dict(type='dict', required=False),
+    state=dict(type='str', choices=['present', 'absent'], default='present'),
+)
+
+
+class BaseMetalV2Resource(ABC):
+    def __init__(self, module, module_arg_spec=None):
+        if not METAL_STACK_API_AVAILABLE:
+            raise RuntimeError("metal-stack-api must be installed")
+
+        self._module = module
+        self.changed = False
+        self._identifier = module.params.get('identifier')
+        self._use_latest_identifier = module.params.get('use_latest_identifier')
+        self._labels = module.params.get('labels')
+        self._state = module.params.get('state')
+        client = init_client_for_module(module)
+        self._client: apiclient.Client = client[0]
+        self._headers: dict = client[1]
+
+    @classmethod
+    def _create_argument_spec(cls, module_arg_spec):
+        argument_spec = V2_AUTH_SPEC.copy()
+        argument_spec.update(COMMON_ARG_SPEC)
+        argument_spec.update(module_arg_spec)
+        return argument_spec
+
+    @classmethod
+    def create_module(cls, module_arg_spec, **kwargs):
+        argument_spec = cls._create_argument_spec(module_arg_spec)
+        return AnsibleModule(
+            argument_spec=argument_spec,
+            supports_check_mode=True,
+            **kwargs,
+        )
+
+    @classmethod
+    def run_module(cls, module_arg_spec, **kwargs):
+        module = cls.create_module(module_arg_spec, **kwargs)
+        instance = cls(module)
+        instance.run()
+
+        result = instance._result()
+        module.exit_json(**result)
+
+    @abstractmethod
+    def _get_resource(self):
+        pass
+
+    def run(self):
+        if self._module.check_mode:
+            return
+
+        self._find()
+
+        if self._state == "present":
+            if self._get_resource():
+                self._update()
+                return
+
+            self._create()
+            self.changed = True
+
+        elif self._state == "absent":
+            if self._get_resource():
+                self._delete()
+                self.changed = True
+
+    def _build_labels(self):
+        labels = self._labels if self._labels else dict()
+        labels = labels | {
+            V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
+            V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
+        }
+        return labels
+
+    def _handle_connect_error(self, e):
+        self._module.fail_json(
+            msg="request to metal-apiserver failed", error=str(e))
+
+    @abstractmethod
+    def _find(self):
+        pass
+
+    @abstractmethod
+    def _create(self):
+        pass
+
+    @abstractmethod
+    def _update(self):
+        pass
+
+    @abstractmethod
+    def _delete(self):
+        pass
+
+    @abstractmethod
+    def _result(self):
+        pass

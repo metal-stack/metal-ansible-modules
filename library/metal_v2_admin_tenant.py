@@ -3,7 +3,7 @@
 
 from datetime import datetime
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, V2_ANSIBLE_CI_IDENTIFIER_KEY, init_client_for_module, get_latest_resource
+from ansible.module_utils.metal_v2 import V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, V2_ANSIBLE_CI_IDENTIFIER_KEY, BaseMetalV2Resource, get_latest_resource
 
 
 try:
@@ -12,7 +12,6 @@ try:
 
     from metalstack.api.v2 import common_pb2, tenant_pb2
     from metalstack.admin.v2 import tenant_pb2 as admin_tenant_pb2
-    from metalstack.client import client as apiclient
 
     METAL_STACK_API_AVAILABLE = True
 except ImportError:
@@ -124,46 +123,21 @@ tenant:
 '''
 
 
-class Instance(object):
+class Instance(BaseMetalV2Resource):
     def __init__(self, module):
         if not METAL_STACK_API_AVAILABLE:
             raise RuntimeError("metal-stack-api must be installed")
 
-        self._module = module
-        self.changed = False
+        super().__init__(module)
         self._tenant: tenant_pb2.Tenant = None
         self._login = None
         self._name = module.params['name']
         self._description = module.params.get('description')
-        self._identifier = module.params.get('identifier')
-        self._use_latest_identifier = module.params.get(
-            'use_latest_identifier')
         self._avatar_url = module.params.get('avatar_url')
         self._email = module.params.get('email')
-        self._labels = module.params.get('labels')
-        self._state = module.params.get('state')
-        client = init_client_for_module(module)
-        self._client: apiclient.Client = client[0]
-        self._headers: dict = client[1]
 
-    def run(self):
-        if self._module.check_mode:
-            return
-
-        self._find()
-
-        if self._state == "present":
-            if self._tenant:
-                self._update()
-                return
-
-            self._create()
-            self.changed = True
-
-        elif self._state == "absent":
-            if self._tenant:
-                self._delete()
-                self.changed = True
+    def _get_resource(self):
+        return self._tenant
 
     def _find(self):
         r = admin_tenant_pb2.TenantServiceListRequest(
@@ -272,38 +246,28 @@ class Instance(object):
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
 
+    def _result(self):
+        result = dict(
+            changed=self.changed,
+            id=self._login,
+        )
+        if self._tenant:
+            result['tenant'] = MessageToDict(self._tenant)
+        return result
+
 
 def main():
-    argument_spec = V2_AUTH_SPEC.copy()
-    argument_spec.update(dict(
-        identifier=dict(type='str', required=True),
-        use_latest_identifier=dict(type='bool', default=False),
+    module = BaseMetalV2Resource.create_module(dict(
         name=dict(type='str', required=True),
         description=dict(type='str', required=True),
         avatar_url=dict(type='str', required=False),
         email=dict(type='str', required=False),
-        labels=dict(type='dict', required=False),
-        state=dict(type='str', choices=[
-                   'present', 'absent'], default='present'),
     ))
-    module = AnsibleModule(
-        argument_spec=argument_spec,
-        supports_check_mode=True,
-    )
-
     instance = Instance(module)
 
     instance.run()
 
-    result = dict(
-        changed=instance.changed,
-        id=instance._login,
-    )
-
-    if instance._tenant:
-        result['tenant'] = MessageToDict(instance._tenant)
-
-    module.exit_json(**result)
+    module.exit_json(**instance._result())
 
 
 if __name__ == '__main__':
