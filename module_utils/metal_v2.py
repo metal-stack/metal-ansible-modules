@@ -25,6 +25,7 @@ class BaseMetalV2Resource(ABC):
     V2_AUTH_SPEC = dict(
         api_url=dict(type='str', required=False),
         api_token=dict(type='str', required=False, no_log=True),
+        api_timeout=dict(type='int', required=False),
     )
 
     V2_COMMON_ARG_SPEC = dict(

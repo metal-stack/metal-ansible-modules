@@ -31,6 +31,8 @@ version_added: "2.18"
 description:
     - Manages tenant entities in the metal-apiserver.
     - Requires metal-stack-api to be installed.
+    - Authentication can be provided via the I(api_url) and I(api_token) options or the METAL_APIV2_URL and METAL_APIV2_TOKEN environment variables.
+    - An optional I(api_timeout) can be set to limit the request duration.
 
 options:
     identifier:
@@ -43,6 +45,7 @@ options:
     use_latest_identifier:
         description:
             - If set to true and multiple resources with the same identifier label are found, the module acts on the latest created resource.
+            - If set to false (default) and multiple resources match, the module will fail with an error.
         required: false
         default: false
     name:
