@@ -69,3 +69,28 @@ def parse_delta(delta) -> timedelta:
     else:
         raise RuntimeError(
             "unable to parse timedelta (may only contain minutes, hours and days), valid args look like 8h, 20d4h3m, ...")
+
+
+def get_latest_resource(self, resources):
+    if not resources:
+        return None
+
+    if self._use_latest_identifier:
+        latest_created = None
+
+        for resource in resources:
+            if latest_created is None:
+                latest_created = resource
+                continue
+
+            if resource.meta.created_at.ToDatetime() > latest_created.meta.created_at.ToDatetime():
+                latest_created = resource
+
+        return latest_created
+
+    if len(resources) != 1:
+        self._module.fail_json(
+            msg=f"the identifier label {V2_ANSIBLE_CI_IDENTIFIER_KEY}={self._identifier} does not return a unique resource. the module cannot figure out on which resource it is supposed to act on.")
+        return
+
+    return resources[0]

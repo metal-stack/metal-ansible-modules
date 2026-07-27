@@ -14,23 +14,23 @@
         name: test
         description: test tenant
         avatar_url: http://test
-        email: test@test.com
+        email: test@test2.com
         # state: absent
       register: tenant
 
-    - name: Create tenant
-      metal_v2_tenant:
-        identifier: test2
-        name: test2
-        description: test tenant2
-        avatar_url: http://test2
-        email: test@test.com2
-        labels:
-          a: b
-        # state: absent
+    # - name: Create tenant
+    #   metal_v2_tenant:
+    #     identifier: test
+    #     name: test2
+    #     description: test tenant2
+    #     avatar_url: http://test2
+    #     email: test@test.com2
+    #     labels:
+    #       a: b
+    #     state: absent
 
     - name: Create project
-      metal_v2_project:
+      metal_v2_admin_project:
         identifier: test
         name: test2
         description: test project2
@@ -55,6 +55,7 @@
       metal_v2_admin_token:
         user: metal-stack
         identifier: metal-bmc
+        use_latest_identifier: true
         description: "for metal-bmc"
         expires: 1d
         permissions:
