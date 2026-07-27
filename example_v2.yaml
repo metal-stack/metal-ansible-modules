@@ -55,6 +55,7 @@
       metal_v2_admin_token:
         user: metal-stack
         identifier: metal-bmc
+        use_latest_identifier: true
         description: "for metal-bmc"
         expires: 1d
         permissions:
