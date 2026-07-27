@@ -10,10 +10,8 @@ try:
     from google.protobuf.json_format import MessageToDict
 
     from metalstack.api.v2 import common_pb2, tenant_pb2
-
-    METAL_STACK_API_AVAILABLE = True
 except ImportError:
-    METAL_STACK_API_AVAILABLE = False
+    pass
 
 
 ANSIBLE_METADATA = {
@@ -45,7 +43,7 @@ options:
     use_latest_identifier:
         description:
             - If set to true and multiple resources with the same identifier label are found, the module acts on the latest created resource.
-        required: true
+        required: false
         default: false
     name:
         description:
@@ -123,9 +121,6 @@ tenant:
 
 class Instance(BaseMetalV2Resource):
     def __init__(self, module):
-        if not METAL_STACK_API_AVAILABLE:
-            raise RuntimeError("metal-stack-api must be installed")
-
         super().__init__(module)
         self._tenant: tenant_pb2.Tenant = None
         self._login = None
@@ -250,12 +245,15 @@ class Instance(BaseMetalV2Resource):
 
 
 def main():
-    module = BaseMetalV2Resource.create_module(dict(
-        name=dict(type='str', required=True),
-        description=dict(type='str', required=True),
-        avatar_url=dict(type='str', required=False),
-        email=dict(type='str', required=False),
-    ))
+    module = AnsibleModule(
+        argument_spec=BaseMetalV2Resource._create_argument_spec(dict(
+            name=dict(type='str', required=True),
+            description=dict(type='str', required=True),
+            avatar_url=dict(type='str', required=False),
+            email=dict(type='str', required=False),
+        )),
+        supports_check_mode=True,
+    )
     instance = Instance(module)
 
     instance.run()

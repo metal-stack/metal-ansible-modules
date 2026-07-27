@@ -1,9 +1,10 @@
 import os
 import re
+import traceback
 from abc import ABC, abstractmethod
 from datetime import timedelta
 
-from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.basic import missing_required_lib
 
 try:
     from metalstack.client import client as apiclient
@@ -11,23 +12,9 @@ try:
     METAL_STACK_API_AVAILABLE = True
 except ImportError:
     METAL_STACK_API_AVAILABLE = False
-
-
-V2_ANSIBLE_CI_MANAGED_KEY = "ci.metal-stack.io/manager"
-V2_ANSIBLE_CI_MANAGED_VALUE = "ansible"
-V2_ANSIBLE_CI_IDENTIFIER_KEY = "ci.metal-stack.io/id"
-
-V2_AUTH_SPEC = dict(
-    api_url=dict(type='str', required=False),
-    api_token=dict(type='str', required=False, no_log=True),
-)
-
-V2_COMMON_ARG_SPEC = dict(
-    identifier=dict(type='str', required=True),
-    use_latest_identifier=dict(type='bool', default=False),
-    labels=dict(type='dict', required=False),
-    state=dict(type='str', choices=['present', 'absent'], default='present'),
-)
+    METAL_STACK_API_IMP_ERR = traceback.format_exc()
+else:
+    METAL_STACK_API_IMP_ERR = None
 
 
 class BaseMetalV2Resource(ABC):
@@ -35,9 +22,25 @@ class BaseMetalV2Resource(ABC):
     V2_ANSIBLE_CI_MANAGED_VALUE = "ansible"
     V2_ANSIBLE_CI_IDENTIFIER_KEY = "ci.metal-stack.io/id"
 
+    V2_AUTH_SPEC = dict(
+        api_url=dict(type='str', required=False),
+        api_token=dict(type='str', required=False, no_log=True),
+    )
+
+    V2_COMMON_ARG_SPEC = dict(
+        identifier=dict(type='str', required=True),
+        use_latest_identifier=dict(type='bool', default=False),
+        labels=dict(type='dict', required=False),
+        state=dict(type='str', choices=[
+                   'present', 'absent'], default='present'),
+    )
+
     def __init__(self, module):
         if not METAL_STACK_API_AVAILABLE:
-            raise RuntimeError("metal-stack-api must be installed")
+            module.fail_json(
+                msg=missing_required_lib("metal-stack-api"),
+                exception=METAL_STACK_API_IMP_ERR,
+            )
 
         self._module = module
         self.changed = False
@@ -52,9 +55,6 @@ class BaseMetalV2Resource(ABC):
         self._headers: dict = client[1]
 
     def _init_client(self, module):
-        if not METAL_STACK_API_AVAILABLE:
-            module.fail_json(msg="metal-stack-api must be installed")
-
         url = module.params.get("api_url", None)
         if not url:
             url = os.environ.get("METAL_APIV2_URL")
@@ -103,28 +103,10 @@ class BaseMetalV2Resource(ABC):
 
     @classmethod
     def _create_argument_spec(cls, module_arg_spec):
-        argument_spec = V2_AUTH_SPEC.copy()
-        argument_spec.update(V2_COMMON_ARG_SPEC)
+        argument_spec = cls.V2_AUTH_SPEC.copy()
+        argument_spec.update(cls.V2_COMMON_ARG_SPEC)
         argument_spec.update(module_arg_spec)
         return argument_spec
-
-    @classmethod
-    def create_module(cls, module_arg_spec, **kwargs):
-        argument_spec = cls._create_argument_spec(module_arg_spec)
-        return AnsibleModule(
-            argument_spec=argument_spec,
-            supports_check_mode=True,
-            **kwargs,
-        )
-
-    @classmethod
-    def run_module(cls, module_arg_spec, **kwargs):
-        module = cls.create_module(module_arg_spec, **kwargs)
-        instance = cls(module)
-        instance.run()
-
-        result = instance._result()
-        module.exit_json(**result)
 
     @abstractmethod
     def _get_resource(self):

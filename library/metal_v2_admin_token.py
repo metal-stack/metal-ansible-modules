@@ -11,10 +11,8 @@ try:
 
     from metalstack.api.v2 import common_pb2, token_pb2
     from metalstack.admin.v2 import token_pb2 as admin_token_pb2
-
-    METAL_STACK_API_AVAILABLE = True
 except ImportError:
-    METAL_STACK_API_AVAILABLE = False
+    pass
 
 
 ANSIBLE_METADATA = {
@@ -143,9 +141,6 @@ token:
 
 class Instance(BaseMetalV2Resource):
     def __init__(self, module):
-        if not METAL_STACK_API_AVAILABLE:
-            raise RuntimeError("metal-stack-api must be installed")
-
         super().__init__(module)
         self._token: token_pb2.Token = None
         self._uuid = None
@@ -436,36 +431,39 @@ class Instance(BaseMetalV2Resource):
 
 
 def main():
-    module = BaseMetalV2Resource.create_module(dict(
-        user=dict(type='str', required=True),
-        description=dict(type='str', required=False),
-        expires=dict(type='str', required=False),
-        permissions=dict(type='list', required=False, elements='dict', options=dict(
-            self=dict(type='dict', options=dict(
-                methods=dict(type='list', elements='str'),)),
-            admin=dict(type='dict', options=dict(
-                methods=dict(type='list', elements='str'),)),
-            infra=dict(type='dict', options=dict(
-                methods=dict(type='list', elements='str'),)),
-            public=dict(type='dict', options=dict(
-                methods=dict(type='list', elements='str'),)),
-            project=dict(type='dict', options=dict(
-                methods=dict(type='list', elements='str'), project=dict(type='str', required=True),)),
-            tenant=dict(type='dict', options=dict(
-                methods=dict(type='list', elements='str'), login=dict(type='str', required=True),)),
-            machine=dict(type='dict', options=dict(
-                methods=dict(type='list', elements='str'), uuid=dict(type='str', required=True),)),
+    module = AnsibleModule(
+        argument_spec=BaseMetalV2Resource._create_argument_spec(dict(
+            user=dict(type='str', required=True),
+            description=dict(type='str', required=False),
+            expires=dict(type='str', required=False),
+            permissions=dict(type='list', required=False, elements='dict', options=dict(
+                self=dict(type='dict', options=dict(
+                    methods=dict(type='list', elements='str'),)),
+                admin=dict(type='dict', options=dict(
+                    methods=dict(type='list', elements='str'),)),
+                infra=dict(type='dict', options=dict(
+                    methods=dict(type='list', elements='str'),)),
+                public=dict(type='dict', options=dict(
+                    methods=dict(type='list', elements='str'),)),
+                project=dict(type='dict', options=dict(
+                    methods=dict(type='list', elements='str'), project=dict(type='str', required=True),)),
+                tenant=dict(type='dict', options=dict(
+                    methods=dict(type='list', elements='str'), login=dict(type='str', required=True),)),
+                machine=dict(type='dict', options=dict(
+                    methods=dict(type='list', elements='str'), uuid=dict(type='str', required=True),)),
+            )),
+            project_roles=dict(type='list', required=False, elements='dict', options=dict(
+                id=dict(type='str', required=True),
+                role=dict(type='str', required=True),
+            )),
+            tenant_roles=dict(type='list', required=False, elements='dict', options=dict(
+                id=dict(type='str', required=True),
+                role=dict(type='str', required=True),
+            )),
+            admin_role=dict(type='str', required=False),
         )),
-        project_roles=dict(type='list', required=False, elements='dict', options=dict(
-            id=dict(type='str', required=True),
-            role=dict(type='str', required=True),
-        )),
-        tenant_roles=dict(type='list', required=False, elements='dict', options=dict(
-            id=dict(type='str', required=True),
-            role=dict(type='str', required=True),
-        )),
-        admin_role=dict(type='str', required=False),
-    ))
+        supports_check_mode=True,
+    )
     instance = Instance(module)
 
     instance.run()

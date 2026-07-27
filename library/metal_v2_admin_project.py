@@ -10,10 +10,8 @@ try:
     from google.protobuf.json_format import MessageToDict
 
     from metalstack.api.v2 import common_pb2, project_pb2
-
-    METAL_STACK_API_AVAILABLE = True
 except ImportError:
-    METAL_STACK_API_AVAILABLE = False
+    pass
 
 
 ANSIBLE_METADATA = {
@@ -126,9 +124,6 @@ project:
 
 class Instance(BaseMetalV2Resource):
     def __init__(self, module):
-        if not METAL_STACK_API_AVAILABLE:
-            raise RuntimeError("metal-stack-api must be installed")
-
         super().__init__(module)
         self._project: project_pb2.Project = None
         self._uuid = None
@@ -255,12 +250,15 @@ class Instance(BaseMetalV2Resource):
 
 
 def main():
-    module = BaseMetalV2Resource.create_module(dict(
-        name=dict(type='str', required=True),
-        tenant=dict(type='str', required=True),
-        description=dict(type='str', required=True),
-        avatar_url=dict(type='str', required=False),
-    ))
+    module = AnsibleModule(
+        argument_spec=BaseMetalV2Resource._create_argument_spec(dict(
+            name=dict(type='str', required=True),
+            tenant=dict(type='str', required=True),
+            description=dict(type='str', required=True),
+            avatar_url=dict(type='str', required=False),
+        )),
+        supports_check_mode=True,
+    )
     instance = Instance(module)
 
     instance.run()
