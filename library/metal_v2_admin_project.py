@@ -188,10 +188,7 @@ class Instance(BaseMetalV2Resource):
             return
 
         if self._labels != None:
-            labels = self._labels | {
-                self.V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-                self.V2_ANSIBLE_CI_MANAGED_KEY: self.V2_ANSIBLE_CI_MANAGED_VALUE,
-            }
+            labels = self._build_labels()
 
             if self._project.meta.labels.labels != labels:
                 self.changed = True
@@ -208,11 +205,7 @@ class Instance(BaseMetalV2Resource):
                     msg="request to metal-apiserver failed", error=str(e))
 
     def _create(self):
-        labels = self._labels if self._labels else dict()
-        labels = labels | {
-            self.V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-            self.V2_ANSIBLE_CI_MANAGED_KEY: self.V2_ANSIBLE_CI_MANAGED_VALUE,
-        }
+        labels = self._build_labels()
 
         r = project_pb2.ProjectServiceCreateRequest(
             login=self._tenant,
@@ -243,15 +236,6 @@ class Instance(BaseMetalV2Resource):
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
 
-    def _result(self):
-        result = dict(
-            changed=self.changed,
-            id=self._uuid,
-        )
-        if self._project:
-            result['project'] = MessageToDict(self._project)
-        return result
-
 
 def main():
     module = AnsibleModule(
@@ -267,7 +251,13 @@ def main():
 
     instance.run()
 
-    module.exit_json(**instance._result())
+    result = dict(
+        changed=instance.changed,
+        id=instance._uuid,
+    )
+    if instance._project:
+        result['project'] = MessageToDict(instance._project)
+    module.exit_json(**result)
 
 
 if __name__ == '__main__':

@@ -10,11 +10,9 @@ try:
     from metalstack.client import client as apiclient
 
     METAL_STACK_API_AVAILABLE = True
-except ImportError:
+except:
     METAL_STACK_API_AVAILABLE = False
     METAL_STACK_API_IMP_ERR = traceback.format_exc()
-else:
-    METAL_STACK_API_IMP_ERR = None
 
 
 class BaseMetalV2Resource(ABC):
@@ -140,10 +138,6 @@ class BaseMetalV2Resource(ABC):
         }
         return labels
 
-    def _handle_connect_error(self, e):
-        self._module.fail_json(
-            msg="request to metal-apiserver failed", error=str(e))
-
     @abstractmethod
     def _find(self):
         pass
@@ -158,10 +152,6 @@ class BaseMetalV2Resource(ABC):
 
     @abstractmethod
     def _delete(self):
-        pass
-
-    @abstractmethod
-    def _result(self):
         pass
 
 

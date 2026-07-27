@@ -156,7 +156,7 @@ class Instance(BaseMetalV2Resource):
         self._project_roles = module.params.get('project_roles')
         self._tenant_roles = module.params.get('tenant_roles')
         self._admin_role = module.params.get('admin_role')
-        self._permissions = module.params.get('permissions')
+        self._permissions = module.params.get('permissions') or []
 
     def _get_resource(self):
         return self._token
@@ -298,10 +298,7 @@ class Instance(BaseMetalV2Resource):
                 r.tenant_roles.update(new_roles)
 
         if self._labels != None:
-            labels = self._labels | {
-                self.V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-                self.V2_ANSIBLE_CI_MANAGED_KEY: self.V2_ANSIBLE_CI_MANAGED_VALUE,
-            }
+            labels = self._build_labels()
 
             if self._token.meta.labels.labels != labels:
                 self.changed = True
@@ -319,11 +316,7 @@ class Instance(BaseMetalV2Resource):
                     msg="request to metal-apiserver failed", error=str(e))
 
     def _create(self):
-        labels = self._labels if self._labels else dict()
-        labels = labels | {
-            self.V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-            self.V2_ANSIBLE_CI_MANAGED_KEY: self.V2_ANSIBLE_CI_MANAGED_VALUE,
-        }
+        labels = self._build_labels()
 
         r = token_pb2.TokenServiceCreateRequest(
             labels=common_pb2.Labels(
@@ -422,17 +415,6 @@ class Instance(BaseMetalV2Resource):
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
 
-    def _result(self):
-        result = dict(
-            changed=self.changed,
-            id=self._uuid,
-        )
-        if self._token:
-            result['token'] = MessageToDict(self._token)
-        if self._secret:
-            result['secret'] = self._secret
-        return result
-
 
 def main():
     module = AnsibleModule(
@@ -472,7 +454,15 @@ def main():
 
     instance.run()
 
-    module.exit_json(**instance._result())
+    result = dict(
+        changed=instance.changed,
+        id=instance._uuid,
+    )
+    if instance._token:
+        result['token'] = MessageToDict(instance._token)
+    if instance._secret:
+        result['secret'] = instance._secret
+    module.exit_json(**result)
 
 
 if __name__ == '__main__':

@@ -185,10 +185,7 @@ class Instance(BaseMetalV2Resource):
             r.email = self._email
 
         if self._labels != None:
-            labels = self._labels | {
-                self.V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-                self.V2_ANSIBLE_CI_MANAGED_KEY: self.V2_ANSIBLE_CI_MANAGED_VALUE,
-            }
+            labels = self._build_labels()
 
             if self._tenant.meta.labels.labels != labels:
                 self.changed = True
@@ -205,11 +202,7 @@ class Instance(BaseMetalV2Resource):
                     msg="request to metal-apiserver failed", error=str(e))
 
     def _create(self):
-        labels = self._labels if self._labels else dict()
-        labels = labels | {
-            self.V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-            self.V2_ANSIBLE_CI_MANAGED_KEY: self.V2_ANSIBLE_CI_MANAGED_VALUE,
-        }
+        labels = self._build_labels()
 
         r = admin_tenant_pb2.TenantServiceCreateRequest(
             name=self._name,
@@ -221,8 +214,6 @@ class Instance(BaseMetalV2Resource):
             r.avatar_url = self._avatar_url
         if self._email:
             r.email = self._email
-        if self._labels:
-            r.labels = common_pb2.Labels(labels=self._labels | labels)
 
         try:
             resp = self._client.adminv2().tenant().create(request=r, headers=self._headers)
@@ -243,15 +234,6 @@ class Instance(BaseMetalV2Resource):
             self._module.fail_json(
                 msg="request to metal-apiserver failed", error=str(e))
 
-    def _result(self):
-        result = dict(
-            changed=self.changed,
-            id=self._login,
-        )
-        if self._tenant:
-            result['tenant'] = MessageToDict(self._tenant)
-        return result
-
 
 def main():
     module = AnsibleModule(
@@ -267,7 +249,13 @@ def main():
 
     instance.run()
 
-    module.exit_json(**instance._result())
+    result = dict(
+        changed=instance.changed,
+        id=instance._login,
+    )
+    if instance._tenant:
+        result['tenant'] = MessageToDict(instance._tenant)
+    module.exit_json(**result)
 
 
 if __name__ == '__main__':
