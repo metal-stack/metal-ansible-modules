@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal_v2 import V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, V2_ANSIBLE_CI_IDENTIFIER_KEY, BaseMetalV2Resource, get_latest_resource
+from ansible.module_utils.metal_v2 import BaseMetalV2Resource
 
 
 try:
@@ -142,8 +142,8 @@ class Instance(BaseMetalV2Resource):
             query=tenant_pb2.TenantQuery(
                 labels=common_pb2.Labels(
                     labels={
-                        V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-                        V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
+                        self.V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
+                        self.V2_ANSIBLE_CI_MANAGED_KEY: self.V2_ANSIBLE_CI_MANAGED_VALUE,
                     },
                 ),
             )
@@ -156,7 +156,7 @@ class Instance(BaseMetalV2Resource):
                 msg="request to metal-apiserver failed", error=str(e))
             return
 
-        self._tenant = get_latest_resource(self, resp.tenants)
+        self._tenant = self._get_latest_resource(resp.tenants)
         if self._tenant:
             self._login = self._tenant.login
 
@@ -184,8 +184,8 @@ class Instance(BaseMetalV2Resource):
 
         if self._labels != None:
             labels = self._labels | {
-                V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-                V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
+                self.V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
+                self.V2_ANSIBLE_CI_MANAGED_KEY: self.V2_ANSIBLE_CI_MANAGED_VALUE,
             }
 
             if self._tenant.meta.labels.labels != labels:
@@ -205,8 +205,8 @@ class Instance(BaseMetalV2Resource):
     def _create(self):
         labels = self._labels if self._labels else dict()
         labels = labels | {
-            V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-            V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
+            self.V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
+            self.V2_ANSIBLE_CI_MANAGED_KEY: self.V2_ANSIBLE_CI_MANAGED_VALUE,
         }
 
         r = tenant_pb2.TenantServiceCreateRequest(

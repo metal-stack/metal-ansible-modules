@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal_v2 import V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, V2_ANSIBLE_CI_IDENTIFIER_KEY, BaseMetalV2Resource, parse_delta, get_latest_resource
+from ansible.module_utils.metal_v2 import BaseMetalV2Resource, parse_delta
 
 
 try:
@@ -162,8 +162,8 @@ class Instance(BaseMetalV2Resource):
             query=token_pb2.TokenQuery(
                 labels=common_pb2.Labels(
                     labels={
-                        V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-                        V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
+                        self.V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
+                        self.V2_ANSIBLE_CI_MANAGED_KEY: self.V2_ANSIBLE_CI_MANAGED_VALUE,
                     },
                 ),
             ),
@@ -176,7 +176,7 @@ class Instance(BaseMetalV2Resource):
                 msg="request to metal-apiserver failed", error=str(e))
             return
 
-        self._token = get_latest_resource(self, resp.tokens)
+        self._token = self._get_latest_resource(resp.tokens)
         if self._token:
             self._uuid = self._token.uuid
 
@@ -290,8 +290,8 @@ class Instance(BaseMetalV2Resource):
 
         if self._labels != None:
             labels = self._labels | {
-                V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-                V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
+                self.V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
+                self.V2_ANSIBLE_CI_MANAGED_KEY: self.V2_ANSIBLE_CI_MANAGED_VALUE,
             }
 
             if self._token.meta.labels.labels != labels:
@@ -311,8 +311,8 @@ class Instance(BaseMetalV2Resource):
     def _create(self):
         labels = self._labels if self._labels else dict()
         labels = labels | {
-            V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-            V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
+            self.V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
+            self.V2_ANSIBLE_CI_MANAGED_KEY: self.V2_ANSIBLE_CI_MANAGED_VALUE,
         }
 
         r = token_pb2.TokenServiceCreateRequest(
