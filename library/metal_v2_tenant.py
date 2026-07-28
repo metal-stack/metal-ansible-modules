@@ -41,7 +41,8 @@ options:
               The identifier gets stored in the resource labels.
               With this, the module can figure out if the resource already exists using the identifier label.
               If multiple resources with the same identifier label are found, the module will throw an error.
-        required: true
+              Falls back to the I(name) parameter if not provided.
+        required: false
     use_latest_identifier:
         description:
             - If set to true and multiple resources with the same identifier label are found, the module acts on the latest created resource.
@@ -93,6 +94,11 @@ EXAMPLES = '''
     avatar_url: http://test
     email: test@test.com
 
+- name: create a tenant without identifier (falls back to name)
+  metal_v2_tenant:
+    name: test
+    description: test tenant
+
 - name: delete a tenant
   metal_v2_tenant:
     identifier: test
@@ -128,6 +134,8 @@ class Instance(BaseMetalV2Resource):
         self._tenant: tenant_pb2.Tenant = None
         self._login = None
         self._name = module.params['name']
+        if not self._identifier:
+            self._identifier = self._name
         self._description = module.params.get('description')
         self._avatar_url = module.params.get('avatar_url')
         self._email = module.params.get('email')
@@ -234,6 +242,7 @@ class Instance(BaseMetalV2Resource):
 def main():
     module = AnsibleModule(
         argument_spec=BaseMetalV2Resource._create_argument_spec(dict(
+            identifier=dict(type='str', required=False),
             name=dict(type='str', required=True),
             description=dict(type='str', required=True),
             avatar_url=dict(type='str', required=False),

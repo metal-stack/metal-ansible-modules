@@ -41,7 +41,8 @@ options:
               The identifier gets stored in the resource labels.
               With this, the module can figure out if the resource already exists using the identifier label.
               If multiple resources with the same identifier label are found, the module will throw an error.
-        required: true
+              Falls back to the I(name) parameter if not provided.
+        required: false
     use_latest_identifier:
         description:
             - If set to true and multiple resources with the same identifier label are found, the module acts on the latest created resource.
@@ -93,6 +94,12 @@ EXAMPLES = '''
     tenant: user@oidc
     avatar_url: http://test
 
+- name: create a project without identifier (falls back to name)
+  metal_v2_admin_project:
+    name: my-project
+    description: test project
+    tenant: user@oidc
+
 - name: delete a project
   metal_v2_admin_project:
     identifier: test
@@ -132,6 +139,8 @@ class Instance(BaseMetalV2Resource):
         self._project: project_pb2.Project = None
         self._uuid = None
         self._name = module.params['name']
+        if not self._identifier:
+            self._identifier = self._name
         self._description = module.params.get('description')
         self._avatar_url = module.params.get('avatar_url')
         self._tenant = module.params.get('tenant')
@@ -240,6 +249,7 @@ class Instance(BaseMetalV2Resource):
 def main():
     module = AnsibleModule(
         argument_spec=BaseMetalV2Resource._create_argument_spec(dict(
+            identifier=dict(type='str', required=False),
             name=dict(type='str', required=True),
             tenant=dict(type='str', required=True),
             description=dict(type='str', required=True),
