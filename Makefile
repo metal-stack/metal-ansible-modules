@@ -8,7 +8,7 @@ test-local:
 .PHONY: test
 test:
 	python3 -m pip install --upgrade pip
-	python3 -m pip install mock metal_python metal-stack-api==0.4.2
+	python3 -m pip install mock metal_python metal-stack-api
 	./test.sh
 
 .PHONY: run-test-example
