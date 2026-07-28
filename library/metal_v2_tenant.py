@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, V2_ANSIBLE_CI_IDENTIFIER_KEY, init_client_for_module, get_latest_resource
+from ansible.module_utils.metal_v2 import BaseMetalV2Resource
 
 
 try:
@@ -10,11 +10,8 @@ try:
     from google.protobuf.json_format import MessageToDict
 
     from metalstack.api.v2 import common_pb2, tenant_pb2
-    from metalstack.client import client as apiclient
-
-    METAL_STACK_API_AVAILABLE = True
 except ImportError:
-    METAL_STACK_API_AVAILABLE = False
+    pass
 
 
 ANSIBLE_METADATA = {
@@ -34,6 +31,8 @@ version_added: "2.18"
 description:
     - Manages tenant entities in the metal-apiserver.
     - Requires metal-stack-api to be installed.
+    - Authentication can be provided via the I(api_url) and I(api_token) options or the METAL_APIV2_URL and METAL_APIV2_TOKEN environment variables.
+    - An optional I(api_timeout) can be set to limit the request duration.
 
 options:
     identifier:
@@ -46,7 +45,8 @@ options:
     use_latest_identifier:
         description:
             - If set to true and multiple resources with the same identifier label are found, the module acts on the latest created resource.
-        required: true
+            - If set to false (default) and multiple resources match, the module will fail with an error.
+        required: false
         default: false
     name:
         description:
@@ -122,54 +122,26 @@ tenant:
 '''
 
 
-class Instance(object):
+class Instance(BaseMetalV2Resource):
     def __init__(self, module):
-        if not METAL_STACK_API_AVAILABLE:
-            raise RuntimeError("metal-stack-api must be installed")
-
-        self._module = module
-        self.changed = False
+        super().__init__(module)
         self._tenant: tenant_pb2.Tenant = None
         self._login = None
         self._name = module.params['name']
-        self._identifier = module.params.get('identifier')
-        self._use_latest_identifier = module.params.get(
-            'use_latest_identifier')
         self._description = module.params.get('description')
         self._avatar_url = module.params.get('avatar_url')
         self._email = module.params.get('email')
-        self._labels = module.params.get('labels')
-        self._state = module.params.get('state')
-        client = init_client_for_module(module)
-        self._client: apiclient.Client = client[0]
-        self._headers: dict = client[1]
 
-    def run(self):
-        if self._module.check_mode:
-            return
-
-        self._find()
-
-        if self._state == "present":
-            if self._tenant:
-                self._update()
-                return
-
-            self._create()
-            self.changed = True
-
-        elif self._state == "absent":
-            if self._tenant:
-                self._delete()
-                self.changed = True
+    def _get_resource(self):
+        return self._tenant
 
     def _find(self):
         r = tenant_pb2.TenantServiceListRequest(
             query=tenant_pb2.TenantQuery(
                 labels=common_pb2.Labels(
                     labels={
-                        V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-                        V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
+                        self.V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
+                        self.V2_ANSIBLE_CI_MANAGED_KEY: self.V2_ANSIBLE_CI_MANAGED_VALUE,
                     },
                 ),
             )
@@ -182,7 +154,7 @@ class Instance(object):
                 msg="request to metal-apiserver failed", error=str(e))
             return
 
-        self._tenant = get_latest_resource(self, resp.tenants)
+        self._tenant = self._get_latest_resource(resp.tenants)
         if self._tenant:
             self._login = self._tenant.login
 
@@ -209,10 +181,7 @@ class Instance(object):
             r.email = self._email
 
         if self._labels != None:
-            labels = self._labels | {
-                V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-                V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
-            }
+            labels = self._build_labels()
 
             if self._tenant.meta.labels.labels != labels:
                 self.changed = True
@@ -229,11 +198,7 @@ class Instance(object):
                     msg="request to metal-apiserver failed", error=str(e))
 
     def _create(self):
-        labels = self._labels if self._labels else dict()
-        labels = labels | {
-            V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-            V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
-        }
+        labels = self._build_labels()
 
         r = tenant_pb2.TenantServiceCreateRequest(
             name=self._name,
@@ -267,20 +232,13 @@ class Instance(object):
 
 
 def main():
-    argument_spec = V2_AUTH_SPEC.copy()
-    argument_spec.update(dict(
-        identifier=dict(type='str', required=True),
-        use_latest_identifier=dict(type='bool', default=False),
-        name=dict(type='str', required=True),
-        description=dict(type='str', required=True),
-        avatar_url=dict(type='str', required=False),
-        email=dict(type='str', required=False),
-        labels=dict(type='dict', required=False),
-        state=dict(type='str', choices=[
-                   'present', 'absent'], default='present'),
-    ))
     module = AnsibleModule(
-        argument_spec=argument_spec,
+        argument_spec=BaseMetalV2Resource._create_argument_spec(dict(
+            name=dict(type='str', required=True),
+            description=dict(type='str', required=True),
+            avatar_url=dict(type='str', required=False),
+            email=dict(type='str', required=False),
+        )),
         supports_check_mode=True,
     )
 
@@ -292,7 +250,6 @@ def main():
         changed=instance.changed,
         id=instance._login,
     )
-
     if instance._tenant:
         result['tenant'] = MessageToDict(instance._tenant)
 

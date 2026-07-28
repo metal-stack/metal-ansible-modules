@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.metal_v2 import V2_AUTH_SPEC, V2_ANSIBLE_CI_MANAGED_KEY, V2_ANSIBLE_CI_MANAGED_VALUE, V2_ANSIBLE_CI_IDENTIFIER_KEY, init_client_for_module, parse_delta, get_latest_resource
+from ansible.module_utils.metal_v2 import BaseMetalV2Resource, parse_delta
 
 
 try:
@@ -11,11 +11,8 @@ try:
 
     from metalstack.api.v2 import common_pb2, token_pb2
     from metalstack.admin.v2 import token_pb2 as admin_token_pb2
-    from metalstack.client import client as apiclient
-
-    METAL_STACK_API_AVAILABLE = True
 except ImportError:
-    METAL_STACK_API_AVAILABLE = False
+    pass
 
 
 ANSIBLE_METADATA = {
@@ -35,6 +32,8 @@ version_added: "2.18"
 description:
     - Manages api token entities in the metal-apiserver.
     - Requires metal-stack-api to be installed.
+    - Authentication can be provided via the I(api_url) and I(api_token) options or the METAL_APIV2_URL and METAL_APIV2_TOKEN environment variables.
+    - An optional I(api_timeout) can be set to limit the request duration.
 
 options:
     identifier:
@@ -47,7 +46,8 @@ options:
     use_latest_identifier:
         description:
             - If set to true and multiple resources with the same identifier label are found, the module acts on the latest created resource.
-        required: true
+            - If set to false (default) and multiple resources match, the module will fail with an error.
+        required: false
         default: false
     description:
         description:
@@ -78,9 +78,10 @@ options:
             - The duration until this token expires. This field cannot be updated and is only used on token creation.
         required: false
     labels:
-        - The labels of the token.
-        - Set to empty dict in order to clean existing.
-    required: false
+        description:
+            - The labels of the token.
+            - Set to empty dict in order to clean existing.
+        required: false
     state:
         description:
           - Assert the state of the token.
@@ -142,19 +143,12 @@ token:
 '''
 
 
-class Instance(object):
+class Instance(BaseMetalV2Resource):
     def __init__(self, module):
-        if not METAL_STACK_API_AVAILABLE:
-            raise RuntimeError("metal-stack-api must be installed")
-
-        self._module = module
-        self.changed = False
+        super().__init__(module)
         self._token: token_pb2.Token = None
         self._uuid = None
         self._secret = None
-        self._identifier = module.params.get('identifier')
-        self._use_latest_identifier = module.params.get(
-            'use_latest_identifier')
         self._user = module.params.get('user')
         self._description = module.params.get('description')
         self._expires = parse_delta(module.params.get(
@@ -162,39 +156,18 @@ class Instance(object):
         self._project_roles = module.params.get('project_roles')
         self._tenant_roles = module.params.get('tenant_roles')
         self._admin_role = module.params.get('admin_role')
-        self._permissions = module.params.get('permissions')
-        self._state = module.params.get('state')
-        self._labels = module.params.get('labels')
-        client = init_client_for_module(module)
-        self._client: apiclient.Client = client[0]
-        self._headers: dict = client[1]
+        self._permissions = module.params.get('permissions') or []
 
-    def run(self):
-        if self._module.check_mode:
-            return
-
-        self._find()
-
-        if self._state == "present":
-            if self._token:
-                self._update()
-                return
-
-            self._create()
-            self.changed = True
-
-        elif self._state == "absent":
-            if self._token:
-                self._delete()
-                self.changed = True
+    def _get_resource(self):
+        return self._token
 
     def _find(self):
         r = admin_token_pb2.TokenServiceListRequest(
             query=token_pb2.TokenQuery(
                 labels=common_pb2.Labels(
                     labels={
-                        V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-                        V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
+                        self.V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
+                        self.V2_ANSIBLE_CI_MANAGED_KEY: self.V2_ANSIBLE_CI_MANAGED_VALUE,
                     },
                 ),
             ),
@@ -207,7 +180,7 @@ class Instance(object):
                 msg="request to metal-apiserver failed", error=str(e))
             return
 
-        self._token = get_latest_resource(self, resp.tokens)
+        self._token = self._get_latest_resource(resp.tokens)
         if self._token:
             self._uuid = self._token.uuid
 
@@ -325,10 +298,7 @@ class Instance(object):
                 r.tenant_roles.update(new_roles)
 
         if self._labels != None:
-            labels = self._labels | {
-                V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-                V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
-            }
+            labels = self._build_labels()
 
             if self._token.meta.labels.labels != labels:
                 self.changed = True
@@ -346,11 +316,7 @@ class Instance(object):
                     msg="request to metal-apiserver failed", error=str(e))
 
     def _create(self):
-        labels = self._labels if self._labels else dict()
-        labels = labels | {
-            V2_ANSIBLE_CI_IDENTIFIER_KEY: self._identifier,
-            V2_ANSIBLE_CI_MANAGED_KEY: V2_ANSIBLE_CI_MANAGED_VALUE,
-        }
+        labels = self._build_labels()
 
         r = token_pb2.TokenServiceCreateRequest(
             labels=common_pb2.Labels(
@@ -451,44 +417,37 @@ class Instance(object):
 
 
 def main():
-    argument_spec = V2_AUTH_SPEC.copy()
-    argument_spec.update(dict(
-        identifier=dict(type='str', required=True),
-        use_latest_identifier=dict(type='bool', default=False),
-        user=dict(type='str', required=True),
-        description=dict(type='str', required=False),
-        expires=dict(type='str', required=False),
-        permissions=dict(type='list', required=False, elements='dict', options=dict(
-            self=dict(type='dict', options=dict(
-                methods=dict(type='list', elements='str'),)),
-            admin=dict(type='dict', options=dict(
-                methods=dict(type='list', elements='str'),)),
-            infra=dict(type='dict', options=dict(
-                methods=dict(type='list', elements='str'),)),
-            public=dict(type='dict', options=dict(
-                methods=dict(type='list', elements='str'),)),
-            project=dict(type='dict', options=dict(
-                methods=dict(type='list', elements='str'), project=dict(type='str', required=True),)),
-            tenant=dict(type='dict', options=dict(
-                methods=dict(type='list', elements='str'), login=dict(type='str', required=True),)),
-            machine=dict(type='dict', options=dict(
-                methods=dict(type='list', elements='str'), uuid=dict(type='str', required=True),)),
-        )),
-        project_roles=dict(type='list', required=False, elements='dict', options=dict(
-            id=dict(type='str', required=True),
-            role=dict(type='str', required=True),
-        )),
-        tenant_roles=dict(type='list', required=False, elements='dict', options=dict(
-            id=dict(type='str', required=True),
-            role=dict(type='str', required=True),
-        )),
-        admin_role=dict(type='str', required=False),
-        labels=dict(type='dict', required=False),
-        state=dict(type='str', choices=[
-                   'present', 'absent'], default='present'),
-    ))
     module = AnsibleModule(
-        argument_spec=argument_spec,
+        argument_spec=BaseMetalV2Resource._create_argument_spec(dict(
+            user=dict(type='str', required=True),
+            description=dict(type='str', required=False),
+            expires=dict(type='str', required=False),
+            permissions=dict(type='list', required=False, elements='dict', options=dict(
+                self=dict(type='dict', options=dict(
+                    methods=dict(type='list', elements='str'),)),
+                admin=dict(type='dict', options=dict(
+                    methods=dict(type='list', elements='str'),)),
+                infra=dict(type='dict', options=dict(
+                    methods=dict(type='list', elements='str'),)),
+                public=dict(type='dict', options=dict(
+                    methods=dict(type='list', elements='str'),)),
+                project=dict(type='dict', options=dict(
+                    methods=dict(type='list', elements='str'), project=dict(type='str', required=True),)),
+                tenant=dict(type='dict', options=dict(
+                    methods=dict(type='list', elements='str'), login=dict(type='str', required=True),)),
+                machine=dict(type='dict', options=dict(
+                    methods=dict(type='list', elements='str'), uuid=dict(type='str', required=True),)),
+            )),
+            project_roles=dict(type='list', required=False, elements='dict', options=dict(
+                id=dict(type='str', required=True),
+                role=dict(type='str', required=True),
+            )),
+            tenant_roles=dict(type='list', required=False, elements='dict', options=dict(
+                id=dict(type='str', required=True),
+                role=dict(type='str', required=True),
+            )),
+            admin_role=dict(type='str', required=False),
+        )),
         supports_check_mode=True,
     )
 
@@ -500,7 +459,6 @@ def main():
         changed=instance.changed,
         id=instance._uuid,
     )
-
     if instance._token:
         result['token'] = MessageToDict(instance._token)
     if instance._secret:

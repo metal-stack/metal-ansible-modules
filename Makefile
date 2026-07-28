@@ -2,12 +2,13 @@ METAL_DEPLOYMENT_BASE_VERSION := latest
 
 .PHONY: test-local
 test-local:
-	docker pull metalstack/metal-deployment-base:latest
-	docker run --rm -it -v $(PWD):/work -w /work metalstack/metal-deployment-base:latest make test
+	docker pull ghcr.io/metal-stack/metal-deployment-base:latest
+	docker run --rm -it -v $(PWD):/work -w /work ghcr.io/metal-stack/metal-deployment-base:latest make test
 
 .PHONY: test
 test:
-	python3 -m pip install mock metal_python
+	python3 -m pip install --upgrade pip
+	python3 -m pip install mock metal_python metal-stack-api
 	./test.sh
 
 .PHONY: run-test-example
