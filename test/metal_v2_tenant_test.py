@@ -137,9 +137,9 @@ class TestMetalV2TenantModule(V2MetalModules):
             RpcCall(
                 request=tenant_pb2.TenantServiceUpdateRequest(
                     login=TENANT_LOGIN,
-                    name="my-tenant-updated",
-                    email="test-updated@test.com",
-                    avatar_url="http://new-avatar",
+                    name=updated_tenant.name,
+                    email=updated_tenant.email,
+                    avatar_url=updated_tenant.avatar_url,
                     update_meta=common_pb2.UpdateMeta(
                         updated_at=timestamp_pb2.Timestamp(seconds=0),
                         locking_strategy=common_pb2.OPTIMISTIC_LOCKING_STRATEGY_CLIENT,
@@ -155,10 +155,10 @@ class TestMetalV2TenantModule(V2MetalModules):
             api_url=V2_TEST_API_URL,
             api_token=V2_TEST_API_TOKEN,
             identifier="test",
-            name="my-tenant-updated",
+            name=updated_tenant.name,
             description=TEST_TENANT.description,
-            email="test-updated@test.com",
-            avatar_url="http://new-avatar",
+            email=updated_tenant.email,
+            avatar_url=updated_tenant.avatar_url,
             labels=V2_TEST_COMMON_LABELS,
         ))
 

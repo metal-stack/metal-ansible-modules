@@ -137,8 +137,8 @@ class TestMetalV2ProjectModule(V2MetalModules):
             RpcCall(
                 request=project_pb2.ProjectServiceUpdateRequest(
                     project=PROJECT_UUID,
-                    name="my-project-updated",
-                    description="updated desc",
+                    name=updated_project.name,
+                    description=updated_project.description,
                     update_meta=common_pb2.UpdateMeta(
                         updated_at=timestamp_pb2.Timestamp(seconds=0),
                         locking_strategy=common_pb2.OPTIMISTIC_LOCKING_STRATEGY_CLIENT,
@@ -154,9 +154,9 @@ class TestMetalV2ProjectModule(V2MetalModules):
             api_url=V2_TEST_API_URL,
             api_token=V2_TEST_API_TOKEN,
             identifier="test",
-            name="my-project-updated",
+            name=updated_project.name,
             tenant=TEST_PROJECT.tenant,
-            description="updated desc",
+            description=updated_project.description,
             avatar_url=TEST_PROJECT.avatar_url,
             labels=V2_TEST_COMMON_LABELS,
         ))

@@ -124,6 +124,7 @@ class TestMetalV2AdminProjectModule(V2MetalModules):
         updated_project = project_pb2.Project()
         updated_project.CopyFrom(TEST_PROJECT)
         updated_project.name = "my-project-updated"
+        updated_project.meta.labels.labels.update({"foo": "bar"})
 
         self.interceptor = TestClientInterceptor([
             RpcCall(
@@ -135,7 +136,7 @@ class TestMetalV2AdminProjectModule(V2MetalModules):
             RpcCall(
                 request=project_pb2.ProjectServiceUpdateRequest(
                     project=PROJECT_UUID,
-                    name="my-project-updated",
+                    name=updated_project.name,
                     labels=common_pb2.UpdateLabels(
                         replace=common_pb2.Labels(
                             labels=V2_TEST_COMMON_LABELS | {"foo": "bar"},
@@ -156,7 +157,7 @@ class TestMetalV2AdminProjectModule(V2MetalModules):
             api_url=V2_TEST_API_URL,
             api_token=V2_TEST_API_TOKEN,
             identifier="test",
-            name="my-project-updated",
+            name=updated_project.name,
             tenant=TEST_PROJECT.tenant,
             description=TEST_PROJECT.description,
             avatar_url=TEST_PROJECT.avatar_url,
@@ -166,9 +167,12 @@ class TestMetalV2AdminProjectModule(V2MetalModules):
         with self.assertRaises(AnsibleExitJson) as result:
             self.module.main()
 
-        res = result.exception.module_results
-        self.assertEqual(res["changed"], True)
-        self.assertEqual(res["id"], PROJECT_UUID)
+        expected = dict(
+            id=PROJECT_UUID,
+            changed=True,
+            project=MessageToDict(updated_project),
+        )
+        self.assertDictEqual(result.exception.module_results, expected)
 
     def test_absent_delete(self):
         self.interceptor = TestClientInterceptor([

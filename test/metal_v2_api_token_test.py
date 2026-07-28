@@ -219,7 +219,7 @@ class TestMetalV2ApiTokenModule(V2MetalModules):
             RpcCall(
                 request=token_pb2.TokenServiceUpdateRequest(
                     uuid=TOKEN_UUID,
-                    description="new description",
+                    description=updated.description,
                     update_meta=common_pb2.UpdateMeta(),
                 ),
                 response=token_pb2.TokenServiceUpdateResponse(
@@ -232,7 +232,7 @@ class TestMetalV2ApiTokenModule(V2MetalModules):
             api_url=V2_TEST_API_URL,
             api_token=V2_TEST_API_TOKEN,
             identifier="test",
-            description="new description",
+            description=updated.description,
             labels=V2_TEST_COMMON_LABELS,
             admin_role="ADMIN_ROLE_EDITOR",
             permissions=[
@@ -250,9 +250,12 @@ class TestMetalV2ApiTokenModule(V2MetalModules):
         with self.assertRaises(AnsibleExitJson) as result:
             self.module.main()
 
-        res = result.exception.module_results
-        self.assertEqual(res["changed"], True)
-        self.assertEqual(res["id"], TOKEN_UUID)
+        expected = dict(
+            changed=True,
+            id=TOKEN_UUID,
+            token=MessageToDict(updated),
+        )
+        self.assertDictEqual(result.exception.module_results, expected)
 
     def test_present_create_with_expires(self):
         self.interceptor = TestClientInterceptor([

@@ -138,8 +138,8 @@ class TestMetalV2AdminTenantModule(V2MetalModules):
             RpcCall(
                 request=tenant_pb2.TenantServiceUpdateRequest(
                     login=TENANT_LOGIN,
-                    email="test-updated@test.com",
-                    avatar_url="http://new-avatar",
+                    email=updated_tenant.email,
+                    avatar_url=updated_tenant.avatar_url,
                     update_meta=common_pb2.UpdateMeta(
                         updated_at=timestamp_pb2.Timestamp(seconds=0),
                         locking_strategy=common_pb2.OPTIMISTIC_LOCKING_STRATEGY_CLIENT,
@@ -157,17 +157,20 @@ class TestMetalV2AdminTenantModule(V2MetalModules):
             identifier="test",
             name=TEST_TENANT.name,
             description=TEST_TENANT.description,
-            email="test-updated@test.com",
-            avatar_url="http://new-avatar",
+            email=updated_tenant.email,
+            avatar_url=updated_tenant.avatar_url,
             labels=V2_TEST_COMMON_LABELS,
         ))
 
         with self.assertRaises(AnsibleExitJson) as result:
             self.module.main()
 
-        res = result.exception.module_results
-        self.assertEqual(res["changed"], True)
-        self.assertEqual(res["id"], TENANT_LOGIN)
+        expected = dict(
+            changed=True,
+            id=TENANT_LOGIN,
+            tenant=MessageToDict(updated_tenant),
+        )
+        self.assertDictEqual(result.exception.module_results, expected)
 
     def test_absent_delete(self):
         self.interceptor = TestClientInterceptor([
