@@ -257,6 +257,7 @@ def main():
         )),
         supports_check_mode=True,
     )
+
     instance = Instance(module)
 
     instance.run()
@@ -267,6 +268,7 @@ def main():
     )
     if instance._project:
         result['project'] = MessageToDict(instance._project)
+
     module.exit_json(**result)
 
 

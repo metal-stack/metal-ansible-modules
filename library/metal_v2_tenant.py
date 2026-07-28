@@ -250,6 +250,7 @@ def main():
         )),
         supports_check_mode=True,
     )
+
     instance = Instance(module)
 
     instance.run()
@@ -260,6 +261,7 @@ def main():
     )
     if instance._tenant:
         result['tenant'] = MessageToDict(instance._tenant)
+
     module.exit_json(**result)
 
 

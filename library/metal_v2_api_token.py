@@ -432,6 +432,7 @@ def main():
         )),
         supports_check_mode=True,
     )
+
     instance = Instance(module)
 
     instance.run()
@@ -444,6 +445,7 @@ def main():
         result['token'] = MessageToDict(instance._token)
     if instance._secret:
         result['secret'] = instance._secret
+
     module.exit_json(**result)
 
 
