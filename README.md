@@ -8,37 +8,37 @@ The v2 modules require the [metal-stack-api](https://pypi.org/project/metal-stac
 
 ## Modules
 
-| Module Name                                 | Description                           | Requirements |
-| ------------------------------------------- | ------------------------------------- | ------------ |
-| [metal_ip](library/metal_ip.py)             | Manages metal-stack IP entities       | metal-python |
-| [metal_firewall](library/metal_firewall.py) | Manages metal-stack firewall entities | metal-python |
-| [metal_machine](library/metal_machine.py)   | Manages metal-stack machine entities  | metal-python |
-| [metal_network](library/metal_network.py)   | Manages metal-stack network entities  | metal-python |
-| [metal_project](library/metal_project.py)   | Manages metal-stack project entities  | metal-python |
+| Module Name                                     | Description                           | Requirements |
+| ----------------------------------------------- | ------------------------------------- | ------------ |
+| [metal_ip](docs/metal_ip.md)                    | Manages metal-stack IP entities       | metal-python |
+| [metal_firewall](docs/metal_firewall.md)        | Manages metal-stack firewall entities | metal-python |
+| [metal_machine](docs/metal_machine.md)          | Manages metal-stack machine entities  | metal-python |
+| [metal_network](docs/metal_network.md)          | Manages metal-stack network entities  | metal-python |
+| [metal_project](docs/metal_project.md)          | Manages metal-stack project entities  | metal-python |
 
 ## V2 Modules
 
-| Module Name                                                     | Description                            | Requirements    |
-| --------------------------------------------------------------- | -------------------------------------- | --------------- |
-| [metal_v2_admin_api_token](library/metal_v2_admin_api_token.py) | Manages metal-stack api token entities | metal-stack-api |
-| [metal_v2_admin_project](library/metal_v2_admin_project.py)     | Manages metal-stack project entities   | metal-stack-api |
-| [metal_v2_admin_tenant](library/metal_v2_admin_tenant.py)       | Manages metal-stack tenant entities    | metal-stack-api |
-| [metal_v2_api_token](library/metal_v2_api_token.py)             | Manages metal-stack api token entities | metal-stack-api |
-| [metal_v2_project](library/metal_v2_project.py)                 | Manages metal-stack project entities   | metal-stack-api |
-| [metal_v2_tenant](library/metal_v2_tenant.py)                   | Manages metal-stack tenant entities    | metal-stack-api |
+| Module Name                                         | Description                            | Requirements    |
+| --------------------------------------------------- | -------------------------------------- | --------------- |
+| [metal_v2_admin_project](docs/metal_v2_admin_project.md) | Manages metal-stack project entities   | metal-stack-api |
+| [metal_v2_admin_tenant](docs/metal_v2_admin_tenant.md)   | Manages metal-stack tenant entities    | metal-stack-api |
+| [metal_v2_admin_token](docs/metal_v2_admin_token.md)     | Manages metal-stack api token entities | metal-stack-api |
+| [metal_v2_api_token](docs/metal_v2_api_token.md)         | Manages metal-stack api token entities | metal-stack-api |
+| [metal_v2_project](docs/metal_v2_project.md)             | Manages metal-stack project entities   | metal-stack-api |
+| [metal_v2_tenant](docs/metal_v2_tenant.md)               | Manages metal-stack tenant entities    | metal-stack-api |
 
 
 ## Dynamic Inventories
 
-| Inventory Name                  | Description                       |
-| ------------------------------- | --------------------------------- |
-| [metal.py](inventory/metal.py)  | Dynamic inventory for metal-stack |
+| Inventory Name                              | Description                       |
+| ------------------------------------------- | --------------------------------- |
+| [metal](docs/inventory_metal.md)            | Dynamic inventory for metal-stack |
 
 ## Lookup Plugins
 
-| Inventory Name                       | Description         |
-| ------------------------------------ | ------------------- |
-| [metal](lookup_plugins/metal.py)     | Query the metal-api |
+| Plugin Name                              | Description         |
+| ---------------------------------------- | ------------------- |
+| [metal](docs/lookup_metal.md)            | Query the metal-api |
 
 ## Usage
 
