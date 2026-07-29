@@ -15,8 +15,8 @@ except ImportError:
 
 
 ANSIBLE_METADATA = {
-    'metadata_version': '0.1',
-    'status': ['preview'],
+    'metadata_version': '1.0',
+    'status': ['stableinterface'],
     'supported_by': 'community'
 }
 
@@ -90,6 +90,9 @@ options:
 
 author:
     - metal-stack
+
+requirements:
+    - L(metal-stack-api,https://pypi.org/project/metal-stack-api/)
 '''
 
 EXAMPLES = '''
@@ -122,21 +125,25 @@ secret:
     type: str
     sample: <a-secret-jwt-token>
 token:
-    description: refresh
-    expires: '2026-07-18T11:54:36.591697440Z'
-    issuedAt: '2026-07-17T11:54:36.591697440Z'
-    meta:
-        createdAt: '2026-07-17T11:54:36.591697440Z'
-        labels:
+    description:
+        - the token response
+    returned: ifexisted but not returned on deletion
+    type: dict
+    sample:
+        expires: '2026-07-18T11:54:36.591697440Z'
+        issuedAt: '2026-07-17T11:54:36.591697440Z'
+        meta:
+            createdAt: '2026-07-17T11:54:36.591697440Z'
             labels:
-                ci.metal-stack.io/id: token-refresh
-                ci.metal-stack.io/manager: ansible
-    permissions:
-    -   methods:
-        - /metalstack.api.v2.TokenService/Refresh
-    tokenType: TOKEN_TYPE_API
-    user: metal-stack
-    uuid: ae6834bd-1ca8-4d22-b38a-8a7c771c06b0
+                labels:
+                    ci.metal-stack.io/id: token-refresh
+                    ci.metal-stack.io/manager: ansible
+        permissions:
+        -   methods:
+            - /metalstack.api.v2.TokenService/Refresh
+        tokenType: TOKEN_TYPE_API
+        user: metal-stack
+        uuid: ae6834bd-1ca8-4d22-b38a-8a7c771c06b0
 '''
 
 

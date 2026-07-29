@@ -16,8 +16,8 @@ except ImportError:
 
 
 ANSIBLE_METADATA = {
-    'metadata_version': '0.1',
-    'status': ['preview'],
+    'metadata_version': '1.0',
+    'status': ['stableinterface'],
     'supported_by': 'community'
 }
 
@@ -95,6 +95,9 @@ options:
 
 author:
     - metal-stack
+
+requirements:
+    - L(metal-stack-api,https://pypi.org/project/metal-stack-api/)
 '''
 
 EXAMPLES = '''
@@ -129,17 +132,21 @@ secret:
     type: str
     sample: <a-secret-jwt-token>
 token:
-    description: for metal-bmc
-    expires: '2025-01-01T14:00:00.00000000Z'
-    issuedAt: '2025-01-01T12:00:00.00000000Z'
-    permissions:
-    -   methods:
-        - /metalstack.infra.v2.BMCService/UpdateBMCInfo
-        - /metalstack.api.v2.TokenService/Refresh
-        subject: '*'
-    tokenType: TOKEN_TYPE_API
-    user: user@oidc
-    uuid: ae6834bd-1ca8-4d22-b38a-8a7c771c06b0
+    description:
+        - the token response
+    returned: ifexisted but not returned on deletion
+    type: dict
+    sample:
+        expires: '2025-01-01T14:00:00.00000000Z'
+        issuedAt: '2025-01-01T12:00:00.00000000Z'
+        permissions:
+        -   methods:
+            - /metalstack.infra.v2.BMCService/UpdateBMCInfo
+            - /metalstack.api.v2.TokenService/Refresh
+            subject: '*'
+        tokenType: TOKEN_TYPE_API
+        user: user@oidc
+        uuid: ae6834bd-1ca8-4d22-b38a-8a7c771c06b0
 '''
 
 

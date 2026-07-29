@@ -1,0 +1,61 @@
+# {{ module_name }}
+
+{{ short_description }}
+
+## Synopsis
+{% for d in description %}
+- {{ d }}
+{% endfor %}
+{% if requirements %}
+## Requirements
+{% for req in requirements %}
+- {{ req }}
+{% endfor %}
+{% endif %}
+## Parameters
+{% if options %}
+| Parameter | Type | Required | Default | Choices | Comments |
+|-----------|------|----------|---------|---------|----------|
+{% for opt in options -%}
+| `{{ opt.name }}` | {{ opt.type }} | {{ "yes" if opt.required else "no" }} | {{ opt.default }} | {{ opt.choices }} | {{ opt.description }} |
+{% endfor %}
+{% else %}
+*No parameters.*
+{% endif %}
+
+## Return Values
+{% if returns %}
+| Key | Type | Returned | Description | Sample |
+|-----|------|----------|-------------|--------|
+{% for ret in returns -%}
+| `{{ ret.name }}` | {{ ret.type }} | {{ ret.returned }} | {{ ret.description }} | {{ ret.sample }} |
+{% endfor %}
+{% for ref, content in multi_samples -%}
+#### Sample {{ ref }}
+
+```json
+{{ content }}
+```
+{% endfor %}
+{% else %}
+*No return values.*
+{% endif %}
+{% if version_added %}
+**Version added:** {{ version_added }}
+{% endif %}
+{% if examples %}
+## Examples
+
+```yaml
+{{ examples }}
+```
+{% endif %}
+{% if authors %}
+## Authors
+{% for author in authors %}
+- {{ author }}
+{% endfor %}
+{% endif %}
+{% if status or supported_by %}
+*{% if status %}status: {{ status }}{% endif %}{% if status and supported_by %}, {% endif %}{% if supported_by %}supported_by: {{ supported_by }}{% endif %}*
+{% endif %}
