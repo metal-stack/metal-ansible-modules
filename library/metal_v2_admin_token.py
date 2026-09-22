@@ -69,6 +69,10 @@ options:
         description:
             - A map of project identifiers to tenant roles.
         required: false
+    machine_roles:
+        description:
+            - A map of machine identifiers to machine roles.
+        required: false
     permissions:
         description:
             - A list of api-method permissions.
@@ -155,6 +159,7 @@ class Instance(BaseMetalV2Resource):
             'expires')) if module.params.get('expires') else None
         self._project_roles = module.params.get('project_roles')
         self._tenant_roles = module.params.get('tenant_roles')
+        self._machine_roles = module.params.get('machine_roles')
         self._admin_role = module.params.get('admin_role')
         self._permissions = module.params.get('permissions') or []
 
@@ -297,6 +302,17 @@ class Instance(BaseMetalV2Resource):
                 self.changed = True
                 r.tenant_roles.update(new_roles)
 
+        if self._machine_roles:
+            new_roles = {}
+
+            for role in self._machine_roles:
+                new_roles[role.get("id")] = common_pb2.MachineRole.Value(
+                    role.get("role"))
+
+            if new_roles != self._token.machine_roles:
+                self.changed = True
+                r.machine_roles.update(new_roles)
+
         if self._labels != None:
             labels = self._build_labels()
 
@@ -390,6 +406,11 @@ class Instance(BaseMetalV2Resource):
                 r.tenant_roles[role.get("id")] = common_pb2.TenantRole.Value(
                     role.get("role"))
 
+        if self._machine_roles:
+            for role in self._machine_roles:
+                r.machine_roles[role.get("id")] = common_pb2.MachineRole.Value(
+                    role.get("role"))
+
         try:
             resp = self._client.adminv2().token().create(request=admin_token_pb2.TokenServiceCreateRequest(
                 user=self._user,
@@ -443,6 +464,10 @@ def main():
                 role=dict(type='str', required=True),
             )),
             tenant_roles=dict(type='list', required=False, elements='dict', options=dict(
+                id=dict(type='str', required=True),
+                role=dict(type='str', required=True),
+            )),
+            machine_roles=dict(type='list', required=False, elements='dict', options=dict(
                 id=dict(type='str', required=True),
                 role=dict(type='str', required=True),
             )),
