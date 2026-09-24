@@ -61,6 +61,10 @@ options:
         description:
             - The admin role for this token.
         required: false
+    infra_role:
+        description:
+            - The infra role for this token.
+        required: false
     tenant_roles:
         description:
             - A map of tenant identifiers to tenant roles.
@@ -161,6 +165,7 @@ class Instance(BaseMetalV2Resource):
         self._tenant_roles = module.params.get('tenant_roles')
         self._machine_roles = module.params.get('machine_roles')
         self._admin_role = module.params.get('admin_role')
+        self._infra_role = module.params.get('infra_role')
         self._permissions = module.params.get('permissions') or []
 
     def _get_resource(self):
@@ -274,6 +279,10 @@ class Instance(BaseMetalV2Resource):
         if self._admin_role and common_pb2.AdminRole.Value(self._admin_role) != self._token.admin_role:
             self.changed = True
             r.admin_role = self._admin_role
+
+        if self._infra_role and common_pb2.InfraRole.Value(self._infra_role) != self._token.infra_role:
+            self.changed = True
+            r.infra_role = self._infra_role
 
         if self._user and self._token.user != self._user:
             self._module.fail_json(
@@ -396,6 +405,9 @@ class Instance(BaseMetalV2Resource):
         if self._admin_role and common_pb2.AdminRole.Value(self._admin_role):
             r.admin_role = self._admin_role
 
+        if self._infra_role and common_pb2.InfraRole.Value(self._infra_role):
+            r.infra_role = self._infra_role
+
         if self._project_roles:
             for role in self._project_roles:
                 r.project_roles[role.get("id")] = common_pb2.ProjectRole.Value(
@@ -471,6 +483,7 @@ def main():
                 id=dict(type='str', required=True),
                 role=dict(type='str', required=True),
             )),
+            infra_role=dict(type='str', required=False),
             admin_role=dict(type='str', required=False),
         )),
         supports_check_mode=True,
