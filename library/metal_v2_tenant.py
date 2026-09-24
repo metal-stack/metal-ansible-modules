@@ -15,8 +15,8 @@ except ImportError:
 
 
 ANSIBLE_METADATA = {
-    'metadata_version': '0.1',
-    'status': ['preview'],
+    'metadata_version': '1.0',
+    'status': ['stableinterface'],
     'supported_by': 'community'
 }
 
@@ -82,6 +82,9 @@ options:
 
 author:
     - metal-stack
+
+requirements:
+    - L(metal-stack-api,https://pypi.org/project/metal-stack-api/)
 '''
 
 EXAMPLES = '''
@@ -107,18 +110,23 @@ id:
     type: str
     sample: b5bc5d9f-3ade-4eac-bb8c-eb309045151f
 tenant:
-    avatarUrl: http://test
-    createdBy: user@oidc
-    description: test tenant
-    email: admin@metal-stack.io
-    login: b5bc5d9f-3ade-4eac-bb8c-eb309045151f
-    meta:
-        createdAt: '2025-01-01T12:00:00.00000000Z'
-        labels:
+    description:
+        - tenant response
+    returned: ifexisted
+    type: dict
+    sample:
+        avatarUrl: http://test
+        createdBy: user@oidc
+        description: test tenant
+        email: admin@metal-stack.io
+        login: b5bc5d9f-3ade-4eac-bb8c-eb309045151f
+        meta:
+            createdAt: '2025-01-01T12:00:00.00000000Z'
             labels:
-                ci.metal-stack.io/id: test
-                ci.metal-stack.io/manager: ansible
-    name: test
+                labels:
+                    ci.metal-stack.io/id: test
+                    ci.metal-stack.io/manager: ansible
+        name: test
 '''
 
 
