@@ -61,6 +61,10 @@ options:
         description:
             - The admin role for this token.
         required: false
+    infra_role:
+        description:
+            - The infra role for this token.
+        required: false
     tenant_roles:
         description:
             - A map of tenant identifiers to tenant roles.
@@ -68,6 +72,10 @@ options:
     project_roles:
         description:
             - A map of project identifiers to tenant roles.
+        required: false
+    machine_roles:
+        description:
+            - A map of machine identifiers to machine roles.
         required: false
     permissions:
         description:
@@ -155,7 +163,9 @@ class Instance(BaseMetalV2Resource):
             'expires')) if module.params.get('expires') else None
         self._project_roles = module.params.get('project_roles')
         self._tenant_roles = module.params.get('tenant_roles')
+        self._machine_roles = module.params.get('machine_roles')
         self._admin_role = module.params.get('admin_role')
+        self._infra_role = module.params.get('infra_role')
         self._permissions = module.params.get('permissions') or []
 
     def _get_resource(self):
@@ -270,6 +280,10 @@ class Instance(BaseMetalV2Resource):
             self.changed = True
             r.admin_role = self._admin_role
 
+        if self._infra_role and common_pb2.InfraRole.Value(self._infra_role) != self._token.infra_role:
+            self.changed = True
+            r.infra_role = self._infra_role
+
         if self._user and self._token.user != self._user:
             self._module.fail_json(
                 msg=f"token belongs to user {self._token.user}, it cannot be changed to user {self._user}")
@@ -296,6 +310,17 @@ class Instance(BaseMetalV2Resource):
             if new_roles != self._token.tenant_roles:
                 self.changed = True
                 r.tenant_roles.update(new_roles)
+
+        if self._machine_roles:
+            new_roles = {}
+
+            for role in self._machine_roles:
+                new_roles[role.get("id")] = common_pb2.MachineRole.Value(
+                    role.get("role"))
+
+            if new_roles != self._token.machine_roles:
+                self.changed = True
+                r.machine_roles.update(new_roles)
 
         if self._labels != None:
             labels = self._build_labels()
@@ -380,6 +405,9 @@ class Instance(BaseMetalV2Resource):
         if self._admin_role and common_pb2.AdminRole.Value(self._admin_role):
             r.admin_role = self._admin_role
 
+        if self._infra_role and common_pb2.InfraRole.Value(self._infra_role):
+            r.infra_role = self._infra_role
+
         if self._project_roles:
             for role in self._project_roles:
                 r.project_roles[role.get("id")] = common_pb2.ProjectRole.Value(
@@ -388,6 +416,11 @@ class Instance(BaseMetalV2Resource):
         if self._tenant_roles:
             for role in self._tenant_roles:
                 r.tenant_roles[role.get("id")] = common_pb2.TenantRole.Value(
+                    role.get("role"))
+
+        if self._machine_roles:
+            for role in self._machine_roles:
+                r.machine_roles[role.get("id")] = common_pb2.MachineRole.Value(
                     role.get("role"))
 
         try:
@@ -446,6 +479,11 @@ def main():
                 id=dict(type='str', required=True),
                 role=dict(type='str', required=True),
             )),
+            machine_roles=dict(type='list', required=False, elements='dict', options=dict(
+                id=dict(type='str', required=True),
+                role=dict(type='str', required=True),
+            )),
+            infra_role=dict(type='str', required=False),
             admin_role=dict(type='str', required=False),
         )),
         supports_check_mode=True,
