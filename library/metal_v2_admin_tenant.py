@@ -219,9 +219,9 @@ class Instance(BaseMetalV2Resource):
         )
 
         if self._avatar_url:
-            r.avatar_url = self._avatar_url
+            r.tenant.avatar_url = self._avatar_url
         if self._email:
-            r.email = self._email
+            r.tenant.email = self._email
 
         try:
             resp = self._client.adminv2().tenant().create(request=r, headers=self._headers)

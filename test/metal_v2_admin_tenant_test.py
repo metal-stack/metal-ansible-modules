@@ -58,11 +58,13 @@ class TestMetalV2AdminTenantModule(V2MetalModules):
             ),
             RpcCall(
                 request=admin_tenant_pb2.TenantServiceCreateRequest(
-                    name=TEST_TENANT.name,
-                    description=TEST_TENANT.description,
-                    email=TEST_TENANT.email,
-                    avatar_url=TEST_TENANT.avatar_url,
-                    labels=common_pb2.Labels(labels=V2_TEST_COMMON_LABELS),
+                    tenant=tenant_pb2.TenantServiceCreateRequest(
+                        name=TEST_TENANT.name,
+                        description=TEST_TENANT.description,
+                        email=TEST_TENANT.email,
+                        avatar_url=TEST_TENANT.avatar_url,
+                        labels=common_pb2.Labels(labels=V2_TEST_COMMON_LABELS),
+                    ),
                 ),
                 response=admin_tenant_pb2.TenantServiceCreateResponse(
                     tenant=TEST_TENANT,

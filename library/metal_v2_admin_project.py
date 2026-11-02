@@ -220,11 +220,12 @@ class Instance(BaseMetalV2Resource):
                 name=self._name,
                 description=self._description,
                 labels=common_pb2.Labels(labels=labels),
+                avatar_url=self._avatar_url,
             ),
         )
 
         if self._avatar_url:
-            r.avatar_url = self._avatar_url
+            r.project.avatar_url = self._avatar_url
 
         try:
             resp = self._client.apiv2().project().create(request=r, headers=self._headers)
