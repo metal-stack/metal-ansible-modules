@@ -14,6 +14,28 @@ try:
 except ImportError:
     METAL_PYTHON_AVAILABLE = False
 
+
+ANSIBLE_METADATA = {
+    'metadata_version': '1.0',
+    'status': ['stableinterface'],
+    'supported_by': 'community'
+}
+
+DOCUMENTATION = '''
+---
+inventory: metal
+short_description: Dynamic inventory for metal-stack
+description:
+    - Generates an inventory of machines managed by the metal-api.
+    - Returns machines that are tagged with the C(ci.metal-stack.io/manager=ansible) label.
+    - The inventory plugin can be further configured with machine filters using a config file.
+requirements:
+    - L(metal-python,https://pypi.org/project/metal-python/)
+author:
+    - metal-stack
+'''
+
+
 ANSIBLE_CI_MANAGED_KEY = "ci.metal-stack.io/manager"
 ANSIBLE_CI_MANAGED_VALUE = "ansible"
 ANSIBLE_CI_MANAGED_TAG = ANSIBLE_CI_MANAGED_KEY + "=" + ANSIBLE_CI_MANAGED_VALUE
@@ -31,7 +53,8 @@ class Configuration:
                 self._config = yaml.safe_load(f)
         else:
             # if configuration path is not provided, the fallback file path is read if present
-            fallback_path = os.path.join(os.path.dirname(__file__), "metal_config.yaml")
+            fallback_path = os.path.join(
+                os.path.dirname(__file__), "metal_config.yaml")
             if os.path.isfile(fallback_path):
                 with open(fallback_path, "r") as f:
                     self._config = yaml.safe_load(f)
@@ -91,7 +114,8 @@ def parse_arguments():
 
 
 def host_list(c):
-    d = Driver(url=c.url(), bearer=c.token(), hmac_key=c.hmac(), hmac_user=c.hmac_user())
+    d = Driver(url=c.url(), bearer=c.token(),
+               hmac_key=c.hmac(), hmac_user=c.hmac_user())
 
     request = models.V1MachineFindRequest()
     for scope_filter in c.scope_filters():

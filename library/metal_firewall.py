@@ -13,8 +13,8 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.metal import AUTH_SPEC, ANSIBLE_CI_MANAGED_TAG, init_driver_for_module
 
 ANSIBLE_METADATA = {
-    'metadata_version': '0.1',
-    'status': ['preview'],
+    'metadata_version': '1.0',
+    'status': ['stableinterface'],
     'supported_by': 'community'
 }
 
@@ -96,6 +96,9 @@ options:
 
 author:
     - metal-stack
+
+requirements:
+    - L(metal-python,https://pypi.org/project/metal-python/)
 '''
 
 EXAMPLES = '''

@@ -21,8 +21,7 @@ run-test-example:
 		  "ansible-galaxy install --ignore-errors -r example-requirements.yaml && ansible-playbook example.yaml -v"
 
 .PHONY: run-v2-test-example
-run-v2-test-example:
-	docker build -f Dockerfile.test --build-arg METAL_DEPLOYMENT_BASE_VERSION=$(METAL_DEPLOYMENT_BASE_VERSION) -t metal-ansible-modules .
+run-v2-test-example: test-base
 	docker run --rm -it \
 		-e METAL_APIV2_TOKEN=$(shell kubectl --context kind-metal-control-plane get secret -n metal-control-plane metal-apiserver-admin-token -o jsonpath='{.data.admin_editor_token}' | base64 -d) \
 		-v $(PWD):/metal-modules:ro \
@@ -30,3 +29,14 @@ run-v2-test-example:
 		--network host \
 		metal-ansible-modules /bin/bash -ce \
 		  "ansible-playbook example_v2.yaml -vvv"
+
+.PHONY: docs
+docs: test-base
+	docker run --rm -it \
+		-v $(PWD):/metal-modules \
+		-w /metal-modules \
+		metal-ansible-modules /bin/bash -ce "python3 docs/gen_docs.py"
+
+.PHONY: test-base
+test-base:
+	docker build -f Dockerfile.test --build-arg METAL_DEPLOYMENT_BASE_VERSION=$(METAL_DEPLOYMENT_BASE_VERSION) -t metal-ansible-modules .

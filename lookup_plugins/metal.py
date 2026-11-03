@@ -16,9 +16,16 @@ except ImportError:
 from ansible.errors import AnsibleError
 from ansible.plugins.lookup import LookupBase
 
+ANSIBLE_METADATA = {
+    'metadata_version': '1.0',
+    'status': ['stableinterface'],
+    'supported_by': 'community'
+}
+
 DOCUMENTATION = """
     lookup: metal
-    author: metal-stack
+    author:
+      - metal-stack
     version_added: '2.9'
     short_description: Query the metal-api
     description:
@@ -32,7 +39,8 @@ DOCUMENTATION = """
         - "'search' returns a list of results filtered by the given query params"
         default: get
       entity:
-        description: the entity to lookup
+        description:
+          - the entity to lookup
         required: True
       _terms:
          description:
@@ -46,7 +54,7 @@ DOCUMENTATION = """
           - If this happens, you can prefix your parameter with an underscore, which will be removed before the request.
         required: False
     requirements:
-      - "metal-python >= 0.9.0"
+      - L(metal-python,https://pypi.org/project/metal-python/)
     notes:
       - Uses the metal-python client for accessing the API. (https://github.com/metal-stack/metal-python)
 """
