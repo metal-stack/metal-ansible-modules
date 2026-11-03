@@ -49,6 +49,10 @@ options:
             - If set to false (default) and multiple resources match, the module will fail with an error.
         required: false
         default: false
+    id:
+        description:
+            - A static uuid for the tenant.
+        required: false
     name:
         description:
             - The name of the tenant.
@@ -128,6 +132,7 @@ class Instance(BaseMetalV2Resource):
         super().__init__(module)
         self._tenant: tenant_pb2.Tenant = None
         self._login = None
+        self._static_id = module.params.get('id', None)
         self._name = module.params['name']
         self._description = module.params.get('description')
         self._avatar_url = module.params.get('avatar_url')
@@ -205,15 +210,18 @@ class Instance(BaseMetalV2Resource):
         labels = self._build_labels()
 
         r = admin_tenant_pb2.TenantServiceCreateRequest(
-            name=self._name,
-            description=self._description,
-            labels=common_pb2.Labels(labels=labels),
+            login=self._static_id,
+            tenant=tenant_pb2.TenantServiceCreateRequest(
+                name=self._name,
+                description=self._description,
+                labels=common_pb2.Labels(labels=labels),
+            ),
         )
 
         if self._avatar_url:
-            r.avatar_url = self._avatar_url
+            r.tenant.avatar_url = self._avatar_url
         if self._email:
-            r.email = self._email
+            r.tenant.email = self._email
 
         try:
             resp = self._client.adminv2().tenant().create(request=r, headers=self._headers)
@@ -238,6 +246,7 @@ class Instance(BaseMetalV2Resource):
 def main():
     module = AnsibleModule(
         argument_spec=BaseMetalV2Resource._create_argument_spec(dict(
+            id=dict(type='str', required=False),
             name=dict(type='str', required=True),
             description=dict(type='str', required=True),
             avatar_url=dict(type='str', required=False),

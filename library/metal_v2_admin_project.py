@@ -10,6 +10,7 @@ try:
     from google.protobuf.json_format import MessageToDict
 
     from metalstack.api.v2 import common_pb2, project_pb2
+    from metalstack.admin.v2 import project_pb2 as admin_project_pb2
 except ImportError:
     pass
 
@@ -48,6 +49,10 @@ options:
             - If set to false (default) and multiple resources match, the module will fail with an error.
         required: false
         default: false
+    id:
+        description:
+        - A static uuid for the project.
+        required: false
     name:
         description:
             - The name of the project.
@@ -131,6 +136,7 @@ class Instance(BaseMetalV2Resource):
         super().__init__(module)
         self._project: project_pb2.Project = None
         self._uuid = None
+        self._static_uuid = module.params.get('id', None)
         self._name = module.params['name']
         self._description = module.params.get('description')
         self._avatar_url = module.params.get('avatar_url')
@@ -207,15 +213,19 @@ class Instance(BaseMetalV2Resource):
     def _create(self):
         labels = self._build_labels()
 
-        r = project_pb2.ProjectServiceCreateRequest(
-            login=self._tenant,
-            name=self._name,
-            description=self._description,
-            labels=common_pb2.Labels(labels=labels),
+        r = admin_project_pb2.ProjectServiceCreateRequest(
+            id=self._static_uuid,
+            project=project_pb2.ProjectServiceCreateRequest(
+                login=self._tenant,
+                name=self._name,
+                description=self._description,
+                labels=common_pb2.Labels(labels=labels),
+                avatar_url=self._avatar_url,
+            ),
         )
 
         if self._avatar_url:
-            r.avatar_url = self._avatar_url
+            r.project.avatar_url = self._avatar_url
 
         try:
             resp = self._client.apiv2().project().create(request=r, headers=self._headers)
@@ -240,6 +250,7 @@ class Instance(BaseMetalV2Resource):
 def main():
     module = AnsibleModule(
         argument_spec=BaseMetalV2Resource._create_argument_spec(dict(
+            id=dict(type='str', required=False),
             name=dict(type='str', required=True),
             tenant=dict(type='str', required=True),
             description=dict(type='str', required=True),

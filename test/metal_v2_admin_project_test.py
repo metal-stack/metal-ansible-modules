@@ -6,6 +6,7 @@ from google.protobuf.json_format import MessageToDict
 from google.protobuf import timestamp_pb2
 
 from metalstack.api.v2 import common_pb2, project_pb2
+from metalstack.admin.v2 import project_pb2 as admin_project_pb2
 from test import (
     V2MetalModules,
     AnsibleExitJson,
@@ -55,12 +56,14 @@ class TestMetalV2AdminProjectModule(V2MetalModules):
                 response=project_pb2.ProjectServiceListResponse(projects=[]),
             ),
             RpcCall(
-                request=project_pb2.ProjectServiceCreateRequest(
-                    login=TEST_PROJECT.tenant,
-                    name=TEST_PROJECT.name,
-                    description=TEST_PROJECT.description,
-                    avatar_url=TEST_PROJECT.avatar_url,
-                    labels=common_pb2.Labels(labels=V2_TEST_COMMON_LABELS),
+                request=admin_project_pb2.ProjectServiceCreateRequest(
+                    project=project_pb2.ProjectServiceCreateRequest(
+                        login=TEST_PROJECT.tenant,
+                        name=TEST_PROJECT.name,
+                        description=TEST_PROJECT.description,
+                        avatar_url=TEST_PROJECT.avatar_url,
+                        labels=common_pb2.Labels(labels=V2_TEST_COMMON_LABELS),
+                    )
                 ),
                 response=project_pb2.ProjectServiceCreateResponse(
                     project=TEST_PROJECT,
