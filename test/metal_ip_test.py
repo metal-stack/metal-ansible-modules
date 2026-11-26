@@ -25,7 +25,7 @@ class TestMetalIPModule(MetalModules):
            side_effect=[
                models.V1IPResponse(
                    type="ephemeral",
-                   ipaddress="212.34.89.212",
+                   ipaddress="203.0.113.20",
                    allocationuuid="a-unique-id",
                    networkid="internet",
                    projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
@@ -66,7 +66,7 @@ class TestMetalIPModule(MetalModules):
         )
 
         expected = dict(
-            ip="212.34.89.212",
+            ip="203.0.113.20",
             changed=True,
         )
         self.assertDictEqual(result.exception.module_results, expected)
@@ -74,7 +74,7 @@ class TestMetalIPModule(MetalModules):
     @patch("metal_python.api.ip_api.IpApi.find_ip",
            side_effect=[
                models.V1IPResponse(
-                   ipaddress="212.34.89.212",
+                   ipaddress="203.0.113.20",
                    allocationuuid="a-unique-id",
                    name="shoot-ip-1",
                    description="b",
@@ -89,7 +89,7 @@ class TestMetalIPModule(MetalModules):
                 api_url="http://somewhere",
                 api_hmac="hmac",
                 name="shoot-ip-1",
-                ip="212.34.89.212",
+                ip="203.0.113.20",
                 description="b",
                 network="internet",
                 project="2ada3f21-67fc-4432-a9ba-89b670245456"
@@ -100,10 +100,10 @@ class TestMetalIPModule(MetalModules):
             self.module.main()
 
         mocks.assert_called()
-        mocks.assert_called_with("212.34.89.212")
+        mocks.assert_called_with("203.0.113.20")
 
         expected = dict(
-            ip="212.34.89.212",
+            ip="203.0.113.20",
             changed=False,
         )
         self.assertDictEqual(result.exception.module_results, expected)
@@ -112,7 +112,7 @@ class TestMetalIPModule(MetalModules):
            side_effect=[
                [
                    models.V1IPResponse(
-                       ipaddress="212.34.89.212",
+                       ipaddress="203.0.113.20",
                        allocationuuid="a-unique-id",
                        name="shoot-ip-1",
                        description="b",
@@ -144,7 +144,7 @@ class TestMetalIPModule(MetalModules):
         ))
 
         expected = dict(
-            ip="212.34.89.212",
+            ip="203.0.113.20",
             changed=False,
         )
         self.assertDictEqual(result.exception.module_results, expected)
@@ -152,7 +152,7 @@ class TestMetalIPModule(MetalModules):
     @patch("metal_python.api.ip_api.IpApi.find_ip",
            side_effect=[
                models.V1IPResponse(
-                   ipaddress="212.34.89.212",
+                   ipaddress="203.0.113.20",
                    allocationuuid="a-unique-id",
                    name="shoot-ip-1",
                    description="b",
@@ -165,7 +165,7 @@ class TestMetalIPModule(MetalModules):
     @patch("metal_python.api.ip_api.IpApi.update_ip",
            side_effect=[
                models.V1IPResponse(
-                   ipaddress="212.34.89.212",
+                   ipaddress="203.0.113.20",
                    allocationuuid="a-unique-id",
                    name="shoot-ip-1",
                    description="b",
@@ -180,7 +180,7 @@ class TestMetalIPModule(MetalModules):
                 api_url="http://somewhere",
                 api_hmac="hmac",
                 name="shoot-ip-1",
-                ip="212.34.89.212",
+                ip="203.0.113.20",
                 description="b",
                 network="internet",
                 tags=["a-new-tag"],
@@ -192,12 +192,12 @@ class TestMetalIPModule(MetalModules):
             self.module.main()
 
         find_mock.assert_called()
-        find_mock.assert_called_with("212.34.89.212")
+        find_mock.assert_called_with("203.0.113.20")
 
         update_mock.assert_called()
         update_mock.assert_called_with(
             models.V1IPUpdateRequest(
-                ipaddress="212.34.89.212",
+                ipaddress="203.0.113.20",
                 type="ephemeral",
                 tags=["a-new-tag",
                       "cluster.metal-stack.io/id/namespace/service=someuid/ns/svc",
@@ -206,7 +206,7 @@ class TestMetalIPModule(MetalModules):
         )
 
         expected = dict(
-            ip="212.34.89.212",
+            ip="203.0.113.20",
             changed=True,
         )
         self.assertDictEqual(result.exception.module_results, expected)
@@ -216,7 +216,7 @@ class TestMetalIPModule(MetalModules):
            side_effect=[
                models.V1IPResponse(
                    type="static",
-                   ipaddress="212.34.89.212",
+                   ipaddress="203.0.113.20",
                    allocationuuid="a-unique-id",
                    networkid="internet",
                    projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
@@ -228,7 +228,7 @@ class TestMetalIPModule(MetalModules):
                 api_url="http://somewhere",
                 api_hmac="hmac",
                 name="shoot-ip-1",
-                ip="212.34.89.212",
+                ip="203.0.113.20",
                 description="b",
                 network="internet",
                 project="2ada3f21-67fc-4432-a9ba-89b670245456"
@@ -239,7 +239,7 @@ class TestMetalIPModule(MetalModules):
             self.module.main()
 
         find_mock.assert_called()
-        find_mock.assert_called_with("212.34.89.212")
+        find_mock.assert_called_with("203.0.113.20")
         allocate_mock.assert_called()
         allocate_mock.assert_called_with(
             models.V1IPAllocateRequest(
@@ -253,7 +253,7 @@ class TestMetalIPModule(MetalModules):
         )
 
         expected = dict(
-            ip="212.34.89.212",
+            ip="203.0.113.20",
             changed=True,
         )
         self.assertDictEqual(result.exception.module_results, expected)
@@ -262,7 +262,7 @@ class TestMetalIPModule(MetalModules):
            side_effect=[
                models.V1IPResponse(
                    type="static",
-                   ipaddress="212.34.89.212",
+                   ipaddress="203.0.113.20",
                    allocationuuid="a-unique-id",
                    networkid="internet",
                    projectid="2ada3f21-67fc-4432-a9ba-89b670245456",
@@ -272,7 +272,7 @@ class TestMetalIPModule(MetalModules):
            side_effect=[
                models.V1IPResponse(
                    type="static",
-                   ipaddress="212.34.89.212",
+                   ipaddress="203.0.113.20",
                    allocationuuid="a-unique-id",
                    networkid="internet",
                    projectid="12e1b1db-44d7-4f57-9c9d-5799b582ab8f",
@@ -283,7 +283,7 @@ class TestMetalIPModule(MetalModules):
             dict(
                 api_url="http://somewhere",
                 api_hmac="hmac",
-                ip="212.34.89.212",
+                ip="203.0.113.20",
                 state="absent"
             )
         )
@@ -291,12 +291,12 @@ class TestMetalIPModule(MetalModules):
             self.module.main()
 
         find_mock.assert_called()
-        find_mock.assert_called_with("212.34.89.212")
+        find_mock.assert_called_with("203.0.113.20")
         free_mock.assert_called()
-        free_mock.assert_called_with("212.34.89.212")
+        free_mock.assert_called_with("203.0.113.20")
 
         expected = dict(
-            ip="212.34.89.212",
+            ip="203.0.113.20",
             changed=True,
         )
         self.assertDictEqual(result.exception.module_results, expected)

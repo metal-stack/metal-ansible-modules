@@ -79,7 +79,7 @@ author:
 EXAMPLES = '''
 - name: allocate a specific ip
   metal_ip:
-    ip: 212.34.83.13
+    ip: 203.0.113.10
     name: my-ip
     description: "my static ip"
     network: internet-fra-equ01
@@ -96,7 +96,7 @@ EXAMPLES = '''
 
 - name: free an ip
   metal_ip:
-    ip: 212.34.83.13
+    ip: 203.0.113.10
     state: absent
 '''
 
@@ -106,7 +106,7 @@ ip:
     - ip address
   returned: always
   type: str
-  sample: 212.34.83.13
+  sample: 203.0.113.10
 '''
 
 

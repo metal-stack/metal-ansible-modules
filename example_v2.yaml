@@ -39,6 +39,17 @@
         # state: absent
       register: project
 
+    - name: Allocate ip
+      metal_v2_ip:
+        identifier: test
+        name: test
+        description: test ip
+        project: "{{ project.id }}"
+        network: internet-mini-lab
+        type: static
+        # state: absent
+      register: ip
+
     # - name: Create project token
     #   metal_v2_api_token:
     #     identifier: token-refresh-2
