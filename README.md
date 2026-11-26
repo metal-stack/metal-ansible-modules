@@ -24,6 +24,7 @@ The v2 modules require the [metal-stack-api](https://pypi.org/project/metal-stac
 | [metal_v2_admin_project](library/metal_v2_admin_project.py)     | Manages metal-stack project entities   | metal-stack-api |
 | [metal_v2_admin_tenant](library/metal_v2_admin_tenant.py)       | Manages metal-stack tenant entities    | metal-stack-api |
 | [metal_v2_api_token](library/metal_v2_api_token.py)             | Manages metal-stack api token entities | metal-stack-api |
+| [metal_v2_ip](library/metal_v2_ip.py)                           | Manages metal-stack ip entities        | metal-stack-api |
 | [metal_v2_project](library/metal_v2_project.py)                 | Manages metal-stack project entities   | metal-stack-api |
 | [metal_v2_tenant](library/metal_v2_tenant.py)                   | Manages metal-stack tenant entities    | metal-stack-api |
 
